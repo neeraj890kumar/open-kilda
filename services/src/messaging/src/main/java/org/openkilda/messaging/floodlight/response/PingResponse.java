@@ -1,4 +1,5 @@
-/* Copyright 2018 Telstra Open Source
+/*
+ * Copyright 2018 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -13,11 +14,20 @@
  *   limitations under the License.
  */
 
-package org.openkilda.messaging.info.flow;
+package org.openkilda.messaging.floodlight.response;
 
-public enum FlowVerificationErrorCode {
-    TIMEOUT,
-    WRITE_FAILURE,
-    NOT_CAPABLE,
-    NO_SPEAKER_RESPONSE
+import org.openkilda.messaging.info.InfoData;
+import org.openkilda.messaging.model.Ping;
+import org.openkilda.messaging.model.PingMeters;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Value;
+
+@Value
+public class PingResponse extends InfoData {
+    @JsonProperty("ping")
+    private Ping ping;
+
+    @JsonProperty("meters")
+    private PingMeters meters;
 }

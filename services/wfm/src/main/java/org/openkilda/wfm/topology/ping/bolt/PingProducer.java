@@ -16,35 +16,61 @@
 package org.openkilda.wfm.topology.ping.bolt;
 
 import org.openkilda.messaging.model.BidirectionalFlow;
-import org.openkilda.wfm.AbstractBolt;
+import org.openkilda.messaging.model.Flow;
+import org.openkilda.messaging.model.FlowDirection;
+import org.openkilda.messaging.model.Ping;
+import org.openkilda.wfm.CommandContext;
 import org.openkilda.wfm.error.AbstractException;
 import org.openkilda.wfm.error.PipelineException;
+import org.openkilda.wfm.topology.ping.PingContext;
 
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
+import org.apache.storm.tuple.Values;
 
 public class PingProducer extends AbstractBolt {
     public static final String BOLT_ID = ComponentId.PING_PRODUCER.toString();
 
     public static final String FIELD_ID_PING_ID = "ping-id";
-    public static final String FIELD_ID_FLOW = "flow";
-    public static final String FIELD_ID_DIRECTION = "direction";
-    public static final String FIELD_ID_PING = "ping";
-
     public static final Fields STREAM_FIELDS = new Fields(
-            FIELD_ID_PING_ID, FIELD_ID_FLOW, FIELD_ID_DIRECTION, FIELD_ID_PING, FIELD_ID_CONTEXT);
+            FIELD_ID_PING_ID, FIELD_ID_PING, FIELD_ID_CONTEXT);
 
     @Override
     protected void handleInput(Tuple input) throws AbstractException {
-        BidirectionalFlow flow;
+        PingContext pingContext = getPingContext(input);
 
-        try {
-            flow = (BidirectionalFlow) input.getValueByField(FlowFetcher.FIELD_ID_FLOW);
-            // TODO
-        } catch (ClassCastException e) {
-            throw new PipelineException(this, input, FlowFetcher.FIELD_ID_FLOW, e.toString());
+        // TODO(surabujin): add one switch flow check
+        emit(input, produce(pingContext, FlowDirection.FORWARD));
+        emit(input, produce(pingContext, FlowDirection.REVERSE));
+    }
+
+    private PingContext produce(PingContext pingContext, FlowDirection direction) {
+        Flow flow = getUnidirectionalFlow(pingContext.getFlow(), direction);
+        Ping ping = new Ping(flow);
+
+        return pingContext.toBuilder().ping(ping).build();
+    }
+
+    private void emit(Tuple input, PingContext pingContext) throws PipelineException {
+        CommandContext commandContext = getContext(input);
+        Values payload = new Values(pingContext.getFlowId(), pingContext, commandContext);
+        getOutput().emit(input, payload);
+    }
+
+    private Flow getUnidirectionalFlow(BidirectionalFlow flow, FlowDirection direction) {
+        Flow result;
+
+        if (FlowDirection.FORWARD == direction) {
+            result = flow.getForward();
+        } else if (FlowDirection.REVERSE == direction) {
+            result = flow.getReverse();
+        } else {
+            throw new IllegalArgumentException(String.format(
+                    "Unexpected %s value: %s", FlowDirection.class.getCanonicalName(), direction));
         }
+
+        return result;
     }
 
     @Override

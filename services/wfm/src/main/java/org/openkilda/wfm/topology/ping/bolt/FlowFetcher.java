@@ -19,11 +19,12 @@ import org.openkilda.messaging.Utils;
 import org.openkilda.messaging.model.BidirectionalFlow;
 import org.openkilda.pce.provider.PathComputer;
 import org.openkilda.pce.provider.PathComputerAuth;
-import org.openkilda.wfm.AbstractBolt;
 import org.openkilda.wfm.CommandContext;
 import org.openkilda.wfm.error.AbstractException;
 import org.openkilda.wfm.error.PipelineException;
 import org.openkilda.wfm.share.utils.PathComputerFlowFetcher;
+import org.openkilda.wfm.topology.ping.PingContext;
+import org.openkilda.wfm.topology.ping.PingContext.Kinds;
 
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
@@ -38,9 +39,7 @@ public class FlowFetcher extends AbstractBolt {
     public static final String BOLT_ID = ComponentId.FLOW_FETCHER.toString();
 
     public static final String FIELD_ID_FLOW_ID = Utils.FLOW_ID;
-    public static final String FIELD_ID_FLOW = "flow";
-
-    public static final Fields STREAM_FIELDS = new Fields(FIELD_ID_FLOW_ID, FIELD_ID_FLOW, FIELD_ID_CONTEXT);
+    public static final Fields STREAM_FIELDS = new Fields(FIELD_ID_FLOW_ID, FIELD_ID_PING, FIELD_ID_CONTEXT);
 
     private final PathComputerAuth pathComputerAuth;
     private PathComputer pathComputer = null;
@@ -54,19 +53,20 @@ public class FlowFetcher extends AbstractBolt {
         String componentId = input.getSourceComponent();
 
         if (MonotonicTick.BOLT_ID.equals(componentId)) {
-            handlePing(input);
+            handleTimerTrigger(input);
         } else {
             unhandledInput(input);
         }
     }
 
-    private void handlePing(Tuple input) throws PipelineException {
+    private void handleTimerTrigger(Tuple input) throws PipelineException {
         PathComputerFlowFetcher fetcher = new PathComputerFlowFetcher(pathComputer);
 
-        final CommandContext context = getContext(input);
+        final CommandContext commandContext = getContext(input);
         final OutputCollector output = getOutput();
         for (BidirectionalFlow flow : fetcher.getFlows()) {
-            Values payload = new Values(flow.getFlowId(), flow, context);
+            PingContext pingContext = new PingContext(Kinds.PERIODIC, flow);
+            Values payload = new Values(pingContext.getFlowId(), pingContext, commandContext);
             output.emit(input, payload);
         }
     }

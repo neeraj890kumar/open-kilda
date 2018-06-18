@@ -17,6 +17,8 @@ package org.openkilda.messaging.info.flow;
 
 import org.openkilda.messaging.command.flow.UniFlowVerificationRequest;
 import org.openkilda.messaging.info.InfoData;
+import org.openkilda.messaging.model.Ping.Errors;
+import org.openkilda.messaging.model.PingMeters;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -35,10 +37,10 @@ public class UniFlowVerificationResponse extends InfoData {
     private boolean pingSuccess;
 
     @JsonProperty("error")
-    private FlowVerificationErrorCode error;
+    private Errors error;
 
     @JsonProperty("measures")
-    private VerificationMeasures measures;
+    private PingMeters measures;
 
     @JsonProperty("request")
     private UniFlowVerificationRequest request;
@@ -46,8 +48,8 @@ public class UniFlowVerificationResponse extends InfoData {
     @JsonCreator
     public UniFlowVerificationResponse(
             @JsonProperty("ping_success") boolean pingSuccess,
-            @JsonProperty("error") FlowVerificationErrorCode error,
-            @JsonProperty("network_latency") VerificationMeasures measures,
+            @JsonProperty("error") Errors error,
+            @JsonProperty("network_latency") PingMeters measures,
             @JsonProperty("request") UniFlowVerificationRequest request) {
         this.pingSuccess = pingSuccess;
         this.error = error;
@@ -55,12 +57,12 @@ public class UniFlowVerificationResponse extends InfoData {
         this.request = request;
     }
 
-    public UniFlowVerificationResponse(UniFlowVerificationRequest request, VerificationMeasures measures) {
+    public UniFlowVerificationResponse(UniFlowVerificationRequest request, PingMeters measures) {
         this(true, null, measures, request);
     }
 
     public UniFlowVerificationResponse(
-            UniFlowVerificationRequest request, FlowVerificationErrorCode error) {
+            UniFlowVerificationRequest request, Errors error) {
         this(false, error, null, request);
     }
 

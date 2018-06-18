@@ -17,6 +17,7 @@ package org.openkilda.messaging.command.flow;
 
 import org.openkilda.messaging.command.CommandData;
 import org.openkilda.messaging.model.Flow;
+import org.openkilda.messaging.model.FlowDirection;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;

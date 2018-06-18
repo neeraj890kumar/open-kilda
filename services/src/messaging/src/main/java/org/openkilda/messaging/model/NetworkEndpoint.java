@@ -15,6 +15,7 @@ public class NetworkEndpoint implements Serializable {
     private final String switchDpId;
 
     @JsonProperty("port-id")
+
     private final Integer portId;
 
     @JsonCreator
