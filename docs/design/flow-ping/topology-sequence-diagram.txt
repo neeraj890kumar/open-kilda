@@ -10,7 +10,9 @@ participant Neo4j
 
 participant PingProducer
 participant PingRouter
+participant Blacklist
 participant TimeoutManager
+participant ResultManager
 participant StatsProducer
 participant FailReporter
 
@@ -32,41 +34,59 @@ Neo4j -> FlowFetcher: [flows]
 deactivate Neo4j
 
 note right of FlowFetcher: for each flow
-FlowFetcher -> PingProducer: flow (field grouping)
+FlowFetcher -> PingProducer: PingContext\n(field grouping)
 deactivate FlowFetcher
 
 activate PingProducer
-note right of PingProducer: make ping request\n(source dest)
-PingProducer -> PingRouter: flow+ping request
+note right of PingProducer: make ping request\n(source+dest)
+PingProducer -> PingRouter: PingContext
 deactivate PingProducer
 activate PingRouter
-PingRouter -> TimeoutManager: flow+ping request\n(field grouping)
+PingRouter -> Blacklist: PingContext\n(field grouping)
+deactivate PingRouter
+
+activate Blacklist
+alt blacklisted
+Blacklist ->x Blacklist: drop request
+else normal workflow
+Blacklist -> PingRouter: PingContext
+activate PingRouter
+end
+deactivate Blacklist
+
+PingRouter -> TimeoutManager: PingContext\n(field grouping)
 deactivate PingRouter
 
 activate TimeoutManager
 note right of TimeoutManager: scheduleTimeout for\npingId
-TimeoutManager -> kilda.speaker: proxy\nping request
+TimeoutManager -> kilda.speaker: PingRequest
 
-kilda.speaker -> FL: ping request
+kilda.speaker -> FL: PingRequest
 activate FL
-FL -> SW.source: ping package
+note right of FL: make PingPackage
+FL -> SW.source: PingPackage
 deactivate FL
 
 alt normal workflow
-    SW.source -> SW.dest: ping package
-    SW.dest -> FL: ping package
+    SW.source -> SW.dest: PingPackage
+    SW.dest -> FL: PingPackage
     activate FL
     note right of FL: measure flow\nlatency
-    FL -> kilda.ping: ping response
+    note right of FL: make PingResponse
+    FL -> kilda.ping: PingResponse
     deactivate FL
-    kilda.ping -> PingRouter: ping response
-    PingRouter -> TimeoutManager: ping response\n(field grouping)
+
+    kilda.ping -> PingRouter: PingResponse
+    PingRouter -> TimeoutManager: PingResponse\n(field grouping)
     note right of TimeoutManager: cancel timeout
 
-    TimeoutManager -> FailReporter: flow-ok(field grouping)
+    TimeoutManager -> ResultManager: PingContext\n(field grouping)
+    activate ResultManager
+    ResultManager -> FailReporter: flow-ok\n(field grouping)
     note right of FailReporter: reset fail flag
+    ResultManager -> StatsProducer: PingContext\n(field grouping)
+    deactivate ResultManager
 
-    TimeoutManager -> StatsProducer: flow+ping response
     activate StatsProducer
     StatsProducer -> kilda.stats: flow ping stats
     deactivate StatsProducer
@@ -79,17 +99,36 @@ else lack of capabilities
     kilda.ping -> PingRouter: ping response\n(lack of capabilities)
     PingRouter -> TimeoutManager: ping response\n(field grouping)
     note right of TimeoutManager: cancel timeout
-    note right of TimeoutManager: log warning
+    TimeoutManager -> ResultManager: PingContext\n(field grouping)
+    activate ResultManager
+    ResultManager -> FailReporter: pingContest\n(field grouping)
+    note right of FailReporter: reset fail flag
+
+    ResultManager -> ResultManager: log warning
+    ResultManager -> PingRouter: PingContext
+    deactivate ResultManager
+
+    activate PingRouter
+    PingRouter -> Blacklist: PingContext\n(field grouping)
+    deactivate PingRouter
+    activate Blacklist
+
+    Blacklist ->x Blacklist: update blacklist
+    deactivate Blacklist
 
 else timeout
     Time -> TimeoutManager: X monotonic tick
     Time -> TimeoutManager: X + N monotonic tick
     note right of TimeoutManager: log error
-    TimeoutManager -> FailReporter: flow-timeout(field grouping)
+    TimeoutManager -> ResultManager: PingContext\n(field grouping)
     deactivate TimeoutManager
+    activate ResultManager
+
+    ResultManager -> FailReporter: PingContext\n(field grouping)
+    deactivate ResultManager
+    activate FailReporter
 
     note right of FailReporter: set fail flag
-    activate FailReporter
 
     Time -> FailReporter: X monotonic tick
     Time -> FailReporter: X + M monotonic tick
