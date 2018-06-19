@@ -58,4 +58,11 @@ public class PingContext implements Serializable {
         }
         return ping.getPingId();
     }
+
+    @Override
+    public String toString() {
+        return String.format(
+                "<%s{flowId=%s, error=%s: %s}>",
+                getClass().getCanonicalName(), getFlowId(), getPingId(), getError(), getPing());
+    }
 }

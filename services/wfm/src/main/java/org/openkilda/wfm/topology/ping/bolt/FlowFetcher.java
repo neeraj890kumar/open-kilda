@@ -77,9 +77,7 @@ public class FlowFetcher extends AbstractBolt {
     }
 
     @Override
-    public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
-        super.prepare(stormConf, context, collector);
-
+    public void init() {
         pathComputer = pathComputerAuth.getPathComputer();
     }
 }

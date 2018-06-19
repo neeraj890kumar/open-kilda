@@ -20,7 +20,11 @@ public enum ComponentId {
 
     FLOW_FETCHER("flow_fetcher"),
     PING_PRODUCER("ping_producer"),
+    PING_ROUTER("ping_router"),
 
+    BLACKLIST("blacklist"),
+
+/*
     FLODDLIGHT_DECODER("floodlight.decoder"),
     FLOODLIGHT_ENCODER("floodlight.encoder"),
 
@@ -28,7 +32,7 @@ public enum ComponentId {
 
     FLOW_SYNC_OUT("flow_sync.out"),
     FLOW_STATS_OUT("flow_stats.out"),
-    FLOODLIGHT_OUT("floodlight.kafka.out");
+    FLOODLIGHT_OUT("floodlight.kafka.out")*/;
 
     private final String value;
 

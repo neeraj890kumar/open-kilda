@@ -66,4 +66,14 @@ public class Ping implements Serializable {
         WRITE_FAILURE,
         NOT_CAPABLE
     }
+
+    @Override
+    public String toString() {
+        String sourceEndpoint = source.getSwitchDpId();
+        if (sourceVlanId != null) {
+            sourceEndpoint += String.format("-%d", sourceVlanId);
+        }
+
+        return String.format("%s ===( ping{%s} )===> %s", sourceEndpoint, pingId, dest.getSwitchDpId());
+    }
 }

@@ -21,9 +21,11 @@ import org.openkilda.wfm.config.Neo4jConfig;
 import org.openkilda.wfm.error.ConfigurationException;
 import org.openkilda.wfm.error.NameCollisionException;
 import org.openkilda.wfm.topology.AbstractTopology;
+import org.openkilda.wfm.topology.ping.bolt.Blacklist;
 import org.openkilda.wfm.topology.ping.bolt.FlowFetcher;
 import org.openkilda.wfm.topology.ping.bolt.MonotonicTick;
 import org.openkilda.wfm.topology.ping.bolt.PingProducer;
+import org.openkilda.wfm.topology.ping.bolt.PingRouter;
 
 import org.apache.storm.generated.StormTopology;
 import org.apache.storm.topology.TopologyBuilder;
@@ -43,6 +45,8 @@ public class PingTopology extends AbstractTopology<PingTopologyConfig> {
         monotonicTick(topology);
         flowFetcher(topology);
         pingProducer(topology);
+        pingRouter(topology);
+        blacklist(topology);
 
 //        attachFlowSync(topology);
 //        attachFloodlightInput(topology);
@@ -84,7 +88,20 @@ public class PingTopology extends AbstractTopology<PingTopologyConfig> {
     private void pingProducer(TopologyBuilder topology) {
         PingProducer bolt = new PingProducer();
         topology.setBolt(PingProducer.BOLT_ID, bolt)
-            .fieldsGrouping(FlowFetcher.BOLT_ID, new Fields(FlowFetcher.FIELD_ID_FLOW_ID));
+                .fieldsGrouping(FlowFetcher.BOLT_ID, new Fields(FlowFetcher.FIELD_ID_FLOW_ID));
+    }
+
+    private void pingRouter(TopologyBuilder topology) {
+        PingRouter bolt = new PingRouter();
+        topology.setBolt(PingRouter.BOLT_ID, bolt)
+                .shuffleGrouping(PingProducer.BOLT_ID)
+                .shuffleGrouping(Blacklist.BOLT_ID);
+    }
+
+    private void blacklist(TopologyBuilder topology) {
+        Blacklist bolt = new Blacklist();
+        topology.setBolt(Blacklist.BOLT_ID, bolt)
+                .fieldsGrouping(PingRouter.BOLT_ID, new Fields(PingRouter.FIELD_ID_PING_MATCH));
     }
 
 //    private void attachFlowSyncDecoder(TopologyBuilder topology) {
@@ -96,7 +113,7 @@ public class PingTopology extends AbstractTopology<PingTopologyConfig> {
 //        topology.setBolt(FlowSyncObserver.BOLT_ID, new FlowSyncObserver(pceAuth))
 //                .allGrouping(MonotonicTick.BOLT_ID);
 //    }
-//
+
     /**
      * Topology entry point.
      */

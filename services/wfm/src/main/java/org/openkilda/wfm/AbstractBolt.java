@@ -54,7 +54,11 @@ public abstract class AbstractBolt extends BaseRichBolt {
     @Override
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
         this.output = collector;
+
+        init();
     }
+
+    protected void init() { }
 
     protected CommandContext getContext(Tuple input) throws PipelineException {
         final CommandContext context;

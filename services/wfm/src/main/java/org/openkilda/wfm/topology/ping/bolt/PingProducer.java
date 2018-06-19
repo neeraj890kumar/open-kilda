@@ -33,14 +33,13 @@ public class PingProducer extends AbstractBolt {
     public static final String BOLT_ID = ComponentId.PING_PRODUCER.toString();
 
     public static final String FIELD_ID_PING_ID = "ping-id";
-    public static final Fields STREAM_FIELDS = new Fields(
-            FIELD_ID_PING_ID, FIELD_ID_PING, FIELD_ID_CONTEXT);
+    public static final Fields STREAM_FIELDS = new Fields(FIELD_ID_PING, FIELD_ID_CONTEXT);
 
     @Override
     protected void handleInput(Tuple input) throws AbstractException {
         PingContext pingContext = getPingContext(input);
 
-        // TODO(surabujin): add one switch flow check
+        // TODO(surabujin): add one switch flow filter
         emit(input, produce(pingContext, FlowDirection.FORWARD));
         emit(input, produce(pingContext, FlowDirection.REVERSE));
     }
@@ -54,7 +53,7 @@ public class PingProducer extends AbstractBolt {
 
     private void emit(Tuple input, PingContext pingContext) throws PipelineException {
         CommandContext commandContext = getContext(input);
-        Values payload = new Values(pingContext.getFlowId(), pingContext, commandContext);
+        Values payload = new Values(pingContext, commandContext);
         getOutput().emit(input, payload);
     }
 
