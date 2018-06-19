@@ -15,6 +15,8 @@ participant TimeoutManager
 participant ResultManager
 participant StatsProducer
 participant FailReporter
+participant SpeakerEncoder
+participant SpeakerDecoder
 
 control kilda.speaker
 control kilda.ping
@@ -59,9 +61,13 @@ deactivate PingRouter
 
 activate TimeoutManager
 note right of TimeoutManager: scheduleTimeout for\npingId
-TimeoutManager -> kilda.speaker: PingRequest
+TimeoutManager -> SpeakerEncoder: PingRequest
 
-kilda.speaker -> FL: PingRequest
+activate SpeakerEncoder
+SpeakerEncoder -> kilda.speaker: json{PingRequest}
+deactivate SpeakerEncoder
+
+kilda.speaker -> FL: json{PingRequest}
 activate FL
 note right of FL: make PingPackage
 FL -> SW.source: PingPackage
@@ -73,10 +79,15 @@ alt normal workflow
     activate FL
     note right of FL: measure flow\nlatency
     note right of FL: make PingResponse
-    FL -> kilda.ping: PingResponse
+    FL -> kilda.ping: json{PingResponse}
     deactivate FL
 
-    kilda.ping -> PingRouter: PingResponse
+    kilda.ping -> SpeakerDecoder: json{PingResponse}
+
+    activate SpeakerDecoder
+    SpeakerDecoder -> PingRouter: PingResponse
+    deactivate SpeakerDecoder
+
     PingRouter -> TimeoutManager: PingResponse\n(field grouping)
     note right of TimeoutManager: cancel timeout
 
@@ -94,9 +105,14 @@ alt normal workflow
 else lack of capabilities
     activate FL
     note right of FL: Sw.dest is not\ncapable to catch ping
-    FL -> kilda.ping: ping response\n(lack of capabilities)
+    FL -> kilda.ping: PingResponse\n(lack of capabilities)
     deactivate FL
-    kilda.ping -> PingRouter: ping response\n(lack of capabilities)
+    kilda.ping -> SpeakerDecoder: json{PingResponse}
+
+    activate SpeakerDecoder
+    SpeakerDecoder -> PingRouter: PingResponse\n(lack of capabilities)
+    deactivate SpeakerDecoder
+
     PingRouter -> TimeoutManager: ping response\n(field grouping)
     note right of TimeoutManager: cancel timeout
     TimeoutManager -> ResultManager: PingContext\n(field grouping)
