@@ -26,6 +26,7 @@ import org.openkilda.wfm.topology.ping.bolt.FlowFetcher;
 import org.openkilda.wfm.topology.ping.bolt.MonotonicTick;
 import org.openkilda.wfm.topology.ping.bolt.PingProducer;
 import org.openkilda.wfm.topology.ping.bolt.PingRouter;
+import org.openkilda.wfm.topology.ping.bolt.TimeoutManager;
 
 import org.apache.storm.generated.StormTopology;
 import org.apache.storm.topology.TopologyBuilder;
@@ -47,6 +48,7 @@ public class PingTopology extends AbstractTopology<PingTopologyConfig> {
         pingProducer(topology);
         pingRouter(topology);
         blacklist(topology);
+        timeoutManager(topology);
 
 //        attachFlowSync(topology);
 //        attachFloodlightInput(topology);
@@ -102,6 +104,12 @@ public class PingTopology extends AbstractTopology<PingTopologyConfig> {
         Blacklist bolt = new Blacklist();
         topology.setBolt(Blacklist.BOLT_ID, bolt)
                 .fieldsGrouping(PingRouter.BOLT_ID, new Fields(PingRouter.FIELD_ID_PING_MATCH));
+    }
+
+    private void timeoutManager(TopologyBuilder topology) {
+        TimeoutManager bolt = new TimeoutManager();
+        topology.setBolt(TimeoutManager.BOLT_ID, bolt)
+                .fieldsGrouping(PingRouter.BOLT_ID, new Fields(PingRouter.FIELD_ID_PING_ID));
     }
 
 //    private void attachFlowSyncDecoder(TopologyBuilder topology) {

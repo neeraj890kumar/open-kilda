@@ -28,18 +28,24 @@ import org.apache.storm.tuple.Values;
 public class PingRouter extends AbstractBolt {
     public static final String BOLT_ID = ComponentId.PING_ROUTER.toString();
 
+    public static final String FIELD_ID_PING_ID = "ping.id";
     public static final String FIELD_ID_PING_MATCH = "ping.match";
 
-    public static final Fields STREAM_BLACKLIST_FIELDS = new Fields(
+    public static final Fields STREAM_BLACKLIST_FILTER_FIELDS = new Fields(
             FIELD_ID_PING_MATCH, FIELD_ID_PING, FIELD_ID_CONTEXT);
-    public static final String STREAM_BLACKLIST_ID = "blacklist";
+    public static final String STREAM_BLACKLIST_FILTER_ID = "blacklist";
+
+    public static final Fields STREAM_TIMEOUT_MANAGER_FIELDS = new Fields(
+            FIELD_ID_PING_ID, FIELD_ID_PING, FIELD_ID_CONTEXT);
+    public static final String STREAM_TIMEOUT_MANAGER_ID = "timeout.manager";
 
     @Override
     protected void handleInput(Tuple input) throws AbstractException {
         String component = input.getSourceComponent();
         if (PingProducer.BOLT_ID.equals(component)) {
             routePingProducer(input);
-        // TODO
+        } else if (Blacklist.BOLT_ID.equals(component)) {
+            routeBlacklist(input);
         } else {
             unhandledInput(input);
         }
@@ -50,12 +56,16 @@ public class PingRouter extends AbstractBolt {
         CommandContext commandContext = getContext(input);
 
         Values payload = new Values(pingContext.getPing(), pingContext, commandContext);
-        getOutput().emit(STREAM_BLACKLIST_ID, input, payload);
+        getOutput().emit(STREAM_BLACKLIST_FILTER_ID, input, payload);
+    }
+
+    private void routeBlacklist(Tuple input) {
+
     }
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer outputManager) {
-        outputManager.declareStream(STREAM_BLACKLIST_ID, STREAM_BLACKLIST_FIELDS);
-        // TODO
+        outputManager.declareStream(STREAM_BLACKLIST_FILTER_ID, STREAM_BLACKLIST_FILTER_FIELDS);
+        outputManager.declareStream(STREAM_TIMEOUT_MANAGER_ID, STREAM_TIMEOUT_MANAGER_FIELDS);
     }
 }

@@ -21,12 +21,13 @@ public enum ComponentId {
     FLOW_FETCHER("flow_fetcher"),
     PING_PRODUCER("ping_producer"),
     PING_ROUTER("ping_router"),
-
     BLACKLIST("blacklist"),
+    TIMEOUT_MANAGER("timeout_manager"),
 
-/*
-    FLODDLIGHT_DECODER("floodlight.decoder"),
     FLOODLIGHT_ENCODER("floodlight.encoder"),
+
+    /*
+    FLODDLIGHT_DECODER("floodlight.decoder"),
 
     FLOODLIGHT_IN("floodlight.kafka.in"),
 
