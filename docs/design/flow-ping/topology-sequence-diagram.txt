@@ -14,6 +14,7 @@ participant Blacklist
 participant TimeoutManager
 participant ResultDispatcher
 participant PeriodicResultManager
+participant StatsCoupler
 participant StatsProducer
 participant FailReporter
 participant SpeakerEncoder
@@ -76,9 +77,14 @@ deactivate FL
 
 alt normal workflow
     SW.source -> SW.dest: PingPackage
-    SW.dest -> FL: PingPackage
     activate FL
-    note right of FL: measure flow\nlatency
+    alt normal workflow
+        SW.dest -> FL: PingPackage
+        note right of FL: measure flow\nlatency
+    else lack of capabilities
+        note right of FL: Sw.dest is not\ncapable to catch ping
+    end
+
     note right of FL: make PingResponse
     FL -> kilda.ping: json{PingResponse}
     deactivate FL
@@ -97,47 +103,30 @@ alt normal workflow
     ResultDispatcher -> PeriodicResultManager: PingContext
     deactivate ResultDispatcher
     activate PeriodicResultManager
-    PeriodicResultManager -> FailReporter: flow-ok\n(field grouping)
-    note right of FailReporter: reset fail flag
-    PeriodicResultManager -> StatsProducer: PingContext\n(field grouping)
-    deactivate PeriodicResultManager
+    alt get permanent error
+        PeriodicResultManager -> PingRouter: PingContext
+
+        activate PingRouter
+        PingRouter -> Blacklist: PingContext\n(field grouping)
+        deactivate PingRouter
+        activate Blacklist
+
+        Blacklist ->x Blacklist: update blacklist
+        deactivate Blacklist
+    end
+    PeriodicResultManager -> FailReporter: PingContext\n(flowId grouping)
+    note right of FailReporter: update flow status
+    PeriodicResultManager -> StatsCoupler: PingContest\n(flowId grouping)
+
+    activate StatsCoupler
+    StatsCoupler -> StatsProducer: PingContext\n(flowId grouping)
+    deactivate StatsCoupler
 
     activate StatsProducer
     StatsProducer -> kilda.stats: flow ping stats
     deactivate StatsProducer
 
-else lack of capabilities
-    activate FL
-    note right of FL: Sw.dest is not\ncapable to catch ping
-    FL -> kilda.ping: PingResponse\n(lack of capabilities)
-    deactivate FL
-    kilda.ping -> SpeakerDecoder: json{PingResponse}
-
-    activate SpeakerDecoder
-    SpeakerDecoder -> PingRouter: PingResponse\n(lack of capabilities)
-    deactivate SpeakerDecoder
-
-    PingRouter -> TimeoutManager: ping response\n(field grouping)
-    note right of TimeoutManager: cancel timeout
-    TimeoutManager -> ResultDispatcher: PingContext
-    activate ResultDispatcher
-    ResultDispatcher -> PeriodicResultManager: PingContext
-    deactivate ResultDispatcher
-    activate PeriodicResultManager
-    PeriodicResultManager -> FailReporter: pingContest\n(field grouping)
-    note right of FailReporter: reset fail flag
-
-    PeriodicResultManager -> PeriodicResultManager: log warning
-    PeriodicResultManager -> PingRouter: PingContext
     deactivate PeriodicResultManager
-
-    activate PingRouter
-    PingRouter -> Blacklist: PingContext\n(field grouping)
-    deactivate PingRouter
-    activate Blacklist
-
-    Blacklist ->x Blacklist: update blacklist
-    deactivate Blacklist
 
 else timeout
     Time -> TimeoutManager: X monotonic tick
