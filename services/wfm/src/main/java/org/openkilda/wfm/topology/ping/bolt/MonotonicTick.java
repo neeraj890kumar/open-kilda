@@ -58,8 +58,8 @@ public class MonotonicTick extends AbstractTick {
 
         pingSequenceIndex = 0;
 
-        Values payload = new Values(input.getValue(0), new CommandContext());
-        getOutput().emit(STREAM_PING_ID, input, payload);
+        Values output = new Values(input.getValue(0), new CommandContext());
+        getOutput().emit(STREAM_PING_ID, input, output);
     }
 
     @Override

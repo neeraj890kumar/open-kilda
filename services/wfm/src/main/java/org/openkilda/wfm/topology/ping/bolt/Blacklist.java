@@ -17,35 +17,72 @@ package org.openkilda.wfm.topology.ping.bolt;
 
 import org.openkilda.messaging.model.Ping;
 import org.openkilda.wfm.error.AbstractException;
+import org.openkilda.wfm.error.PipelineException;
 import org.openkilda.wfm.topology.ping.model.PingContext;
+import org.openkilda.wfm.topology.ping.model.PingContext.Kinds;
 
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
 
-@Log4j2
-public class Blacklist extends AbstractBolt {
+import java.util.HashSet;
+
+@Slf4j
+public class Blacklist extends Abstract {
     public static final String BOLT_ID = ComponentId.BLACKLIST.toString();
 
     public static final Fields STREAM_FIELDS = new Fields(FIELD_ID_PING, FIELD_ID_CONTEXT);
 
+    private HashSet<Ping> blacklist;
+
+    @Override
+    protected void init() {
+        super.init();
+        blacklist = new HashSet<>();
+    }
+
     @Override
     protected void handleInput(Tuple input) throws AbstractException {
+        if (!PingRouter.BOLT_ID.equals(input.getSourceComponent())) {
+            unhandledInput(input);
+            return;
+        }
+
+        String stream = input.getSourceStreamId();
         PingContext pingContext = pullPingContext(input);
-        if (isBlacklisted(pingContext.getPing())) {
+        if (PingRouter.STREAM_BLACKLIST_FILTER_ID.equals(stream)) {
+            filter(input, pingContext);
+        } else if (PingRouter.STREAM_BLACKLIST_UPDATE_ID.equals(stream)) {
+            update(pingContext);
+        } else {
+            unhandledInput(input);
+        }
+    }
+
+    private void filter(Tuple input, PingContext pingContext) throws PipelineException {
+        final Ping ping = pingContext.getPing();
+        final Kinds kind = pingContext.getKind();
+
+        if (kind != Kinds.PERIODIC) {
+            log.debug("{} can\'t be blacklisted (kind {})", ping, kind);
+            return;
+        }
+        if (blacklist.contains(ping)) {
             log.debug("{} canceled due to blacklist match", pingContext);
             return;
         }
 
-        Values payload = new Values(pingContext, pullContext(input));
-        getOutput().emit(input, payload);
+        Values output = new Values(pingContext, pullContext(input));
+        getOutput().emit(input, output);
     }
 
-    private boolean isBlacklisted(Ping match) {
-        // TODO
-        return false;
+    private void update(PingContext pingContext) {
+        Ping ping = pingContext.getPing();
+        if (blacklist.add(ping)) {
+            log.info("Add {} into blacklist (error {})", ping, pingContext.getError());
+        }
     }
 
     @Override

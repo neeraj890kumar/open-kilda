@@ -18,20 +18,23 @@ package org.openkilda.wfm.topology.ping.bolt;
 public enum ComponentId {
     MONOTONIC_TICK("monotonic.tick"),
 
+    SPEAKER_INPUT("speaker.input"),
+    SPEAKER_OUTPUT("speaker.output"),
+
     FLOW_FETCHER("flow_fetcher"),
     PING_PRODUCER("ping_producer"),
     PING_ROUTER("ping_router"),
     BLACKLIST("blacklist"),
     TIMEOUT_MANAGER("timeout_manager"),
+    RESULT_DISPATCHER("result.dispatcher"),
+    PERIODIC_RESULT_MANAGER("result_manager.periodic"),
+    MANUAL_RESULT_MANAGER("result_manager.manual"),
+    STATS_COUPLER("stats_coupler"),
 
     SPEAKER_ENCODER("speaker.encoder"),
     SPEAKER_DECODER("speaker.decoder"),
 
-    SPEAKER_OUTPUT("speaker.output"),
-
     /*
-    FLOODLIGHT_IN("floodlight.kafka.in"),
-
     FLOW_SYNC_OUT("flow_sync.out"),
     FLOW_STATS_OUT("flow_stats.out"),
     */;

@@ -16,15 +16,17 @@
 package org.openkilda.wfm.topology.ping.bolt;
 
 import org.openkilda.messaging.Utils;
-import org.openkilda.messaging.command.CommandMessage;
 import org.openkilda.messaging.floodlight.request.PingRequest;
+import org.openkilda.messaging.floodlight.response.PingResponse;
 import org.openkilda.messaging.model.Ping.Errors;
 import org.openkilda.wfm.CommandContext;
 import org.openkilda.wfm.error.AbstractException;
 import org.openkilda.wfm.error.PipelineException;
+import org.openkilda.wfm.topology.ping.model.ExpirableMap;
 import org.openkilda.wfm.topology.ping.model.PingContext;
 import org.openkilda.wfm.topology.ping.model.TimeoutDescriptor;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
@@ -35,7 +37,8 @@ import java.util.LinkedList;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-public class TimeoutManager extends AbstractBolt {
+@Slf4j
+public class TimeoutManager extends Abstract {
     public static final String BOLT_ID = ComponentId.TIMEOUT_MANAGER.toString();
 
     public static final String FIELD_ID_FLOW_ID = Utils.FLOW_ID;
@@ -52,8 +55,7 @@ public class TimeoutManager extends AbstractBolt {
 
     private final long pingTimeout;
 
-    private LinkedList<TimeoutDescriptor> pendingQueue;
-    private HashMap<UUID, TimeoutDescriptor> pendingMap;
+    private ExpirableMap<UUID, TimeoutDescriptor> pendingPings;
 
     public TimeoutManager(int pingTimeout) {
         this.pingTimeout = TimeUnit.SECONDS.toMillis(pingTimeout);
@@ -63,8 +65,7 @@ public class TimeoutManager extends AbstractBolt {
     protected void init() {
         super.init();
 
-        pendingQueue = new LinkedList<>();
-        pendingMap = new HashMap<>();
+        pendingPings = new ExpirableMap<>();
     }
 
     @Override
@@ -85,27 +86,16 @@ public class TimeoutManager extends AbstractBolt {
 
         if (PingRouter.STREAM_REQUEST_ID.equals(stream)) {
             handleRequest(input);
-            // TODO
+        } else if (PingRouter.STREAM_RESPONSE_ID.equals(stream)) {
+            handleResponse(input);
         } else {
             unhandledInput(input);
         }
     }
 
     private void handleTimeTick(Tuple input) {
-        final long now = System.currentTimeMillis();
-        while (! pendingQueue.isEmpty()) {
-            TimeoutDescriptor descriptor = pendingQueue.getFirst();
-
-            if (now < descriptor.getExpireAt()) {
-                break;
-            }
-
-            pendingQueue.removeFirst();
-            pendingMap.remove(descriptor.getPingContext().getPingId());
-            if (! descriptor.isActive()) {
-                continue;
-            }
-
+        final long now = input.getLongByField(MonotonicTick.FIELD_ID_TIME_MILLIS);
+        for (TimeoutDescriptor descriptor : pendingPings.expire(now)) {
             emitTimeout(input, descriptor);
         }
     }
@@ -118,24 +108,61 @@ public class TimeoutManager extends AbstractBolt {
         emitRequest(input, pingContext, commandContext);
     }
 
+    private void handleResponse(Tuple input) throws PipelineException {
+        PingResponse response = pullPingResponse(input);
+        TimeoutDescriptor descriptor = pendingPings.remove(response.getPing().getPingId());
+        if (descriptor == null) {
+            log.warn("There is no pending request matching response {}", response.getPing());
+        } else {
+            cancelTimeout(descriptor);
+            emitResponse(input, descriptor, response);
+        }
+    }
+
     private void scheduleTimeout(PingContext pingContext, CommandContext commandContext) {
         long expireAt = System.currentTimeMillis() + pingTimeout;
 
         TimeoutDescriptor descriptor = new TimeoutDescriptor(expireAt, pingContext, commandContext);
-        pendingQueue.addLast(descriptor);
-        pendingMap.put(pingContext.getPingId(), descriptor);
+        pendingPings.put(pingContext.getPingId(), descriptor);
+    }
+
+    private void cancelTimeout(TimeoutDescriptor descriptor) {
+        descriptor.setActive(false);
     }
 
     private void emitRequest(Tuple input, PingContext pingContext, CommandContext commandContext) {
         final PingRequest request = new PingRequest(pingContext.getPing());
-        Values payload = new Values(request, commandContext);
-        getOutput().emit(STREAM_REQUEST_ID, input, payload);
+        Values output = new Values(request, commandContext);
+        getOutput().emit(STREAM_REQUEST_ID, input, output);
+    }
+
+    private void emitResponse(Tuple input, TimeoutDescriptor descriptor, PingResponse response)
+            throws PipelineException {
+        descriptor.getCommandContext().merge(pullContext(input));
+
+        PingContext pingContext = descriptor.getPingContext().toBuilder()
+                .error(response.getError())
+                .meters(response.getMeters())
+                .build();
+
+        Values output = new Values(pingContext.getFlowId(), pingContext, descriptor.getCommandContext());
+        getOutput().emit(STREAM_RESPONSE_ID, input, output);
     }
 
     private void emitTimeout(Tuple input, TimeoutDescriptor descriptor) {
         PingContext pingTimeout = descriptor.getPingContext().toBuilder().error(Errors.TIMEOUT).build();
-        Values payload = new Values(pingTimeout.getFlowId(), pingTimeout, descriptor.getCommandContext());
-        getOutput().emit(STREAM_TIMEOUT_ID, input, payload);
+        Values output = new Values(pingTimeout.getFlowId(), pingTimeout, descriptor.getCommandContext());
+        getOutput().emit(STREAM_TIMEOUT_ID, input, output);
+    }
+
+    private PingResponse pullPingResponse(Tuple input) throws PipelineException {
+        PingResponse value;
+        try {
+            value = (PingResponse) input.getValueByField(PingRouter.FIELD_ID_RESPONSE);
+        } catch (ClassCastException e) {
+            throw new PipelineException(this, input, PingRouter.FIELD_ID_RESPONSE, e.toString());
+        }
+        return value;
     }
 
     @Override

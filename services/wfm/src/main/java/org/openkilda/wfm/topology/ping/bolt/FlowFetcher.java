@@ -23,8 +23,8 @@ import org.openkilda.wfm.CommandContext;
 import org.openkilda.wfm.error.AbstractException;
 import org.openkilda.wfm.error.PipelineException;
 import org.openkilda.wfm.share.utils.PathComputerFlowFetcher;
-import org.openkilda.wfm.topology.ping.PingContext;
-import org.openkilda.wfm.topology.ping.PingContext.Kinds;
+import org.openkilda.wfm.topology.ping.model.PingContext;
+import org.openkilda.wfm.topology.ping.model.PingContext.Kinds;
 
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.topology.OutputFieldsDeclarer;
@@ -32,7 +32,7 @@ import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
 
-public class FlowFetcher extends AbstractBolt {
+public class FlowFetcher extends Abstract {
     public static final String BOLT_ID = ComponentId.FLOW_FETCHER.toString();
 
     public static final String FIELD_ID_FLOW_ID = Utils.FLOW_ID;
@@ -60,11 +60,11 @@ public class FlowFetcher extends AbstractBolt {
         PathComputerFlowFetcher fetcher = new PathComputerFlowFetcher(pathComputer);
 
         final CommandContext commandContext = pullContext(input);
-        final OutputCollector output = getOutput();
+        final OutputCollector collector = getOutput();
         for (BidirectionalFlow flow : fetcher.getFlows()) {
             PingContext pingContext = new PingContext(Kinds.PERIODIC, flow);
-            Values payload = new Values(pingContext.getFlowId(), pingContext, commandContext);
-            output.emit(input, payload);
+            Values output = new Values(pingContext.getFlowId(), pingContext, commandContext);
+            collector.emit(input, output);
         }
     }
 

@@ -17,16 +17,16 @@ package org.openkilda.wfm.error;
 
 import lombok.Getter;
 
-public class JsonEncodeException extends AbstractException {
+public class JsonDecodeException extends AbstractException {
     @Getter
-    private final Object subject;
+    private final String json;
 
-    public JsonEncodeException(Object subject, Throwable throwable) {
-        super(formatMessage(subject, throwable), throwable);
-        this.subject = subject;
+    public JsonDecodeException(Class<?> klass, String json, Throwable throwable) {
+        super(formatMessage(klass, throwable), throwable);
+        this.json = json;
     }
 
-    private static String formatMessage(Object subject, Throwable cause) {
-        return String.format("Can't encode %s object into JSON: %s", subject.getClass().getName(), cause);
+    private static String formatMessage(Class<?> klass, Throwable cause) {
+        return String.format("Can't decode %s object from JSON: %s", klass.getName(), cause);
     }
 }

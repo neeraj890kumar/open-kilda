@@ -13,20 +13,22 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.error;
+package org.openkilda.wfm.topology.ping.model;
 
-import lombok.Getter;
+import lombok.Data;
 
-public class JsonEncodeException extends AbstractException {
-    @Getter
-    private final Object subject;
+@Data
+public class HalfFlowPingDescriptor extends Expirable<HalfFlowKey> {
+    private final PingContext pingContext;
 
-    public JsonEncodeException(Object subject, Throwable throwable) {
-        super(formatMessage(subject, throwable), throwable);
-        this.subject = subject;
+    public HalfFlowPingDescriptor(long expireAt, PingContext pingContext) {
+        super(expireAt);
+        this.pingContext = pingContext;
     }
 
-    private static String formatMessage(Object subject, Throwable cause) {
-        return String.format("Can't encode %s object into JSON: %s", subject.getClass().getName(), cause);
+    @Override
+    public HalfFlowKey getExpirableKey() {
+        final PingContext pingContext = getPingContext();
+        return new HalfFlowKey(pingContext.getFlowId(), pingContext.getDirection());
     }
 }

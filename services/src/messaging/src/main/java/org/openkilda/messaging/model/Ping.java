@@ -24,6 +24,12 @@ import java.util.UUID;
 
 @Value
 public class Ping implements Serializable {
+    public enum Errors {
+        TIMEOUT,
+        WRITE_FAILURE,
+        NOT_CAPABLE
+    }
+
     @JsonProperty(value = "ping_id", required = true)
     private UUID pingId;
 
@@ -59,12 +65,6 @@ public class Ping implements Serializable {
         this(UUID.randomUUID(), flow.getSourceVlan(),
                 new NetworkEndpoint(flow.getSourceSwitch(), flow.getSourcePort()),
                 new NetworkEndpoint(flow.getDestinationSwitch(), flow.getDestinationPort()));
-    }
-
-    public enum Errors {
-        TIMEOUT,
-        WRITE_FAILURE,
-        NOT_CAPABLE
     }
 
     @Override

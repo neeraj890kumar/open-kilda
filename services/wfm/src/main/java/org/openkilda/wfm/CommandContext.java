@@ -39,6 +39,14 @@ public class CommandContext implements Serializable {
         this(correlationId, System.currentTimeMillis());
     }
 
+    /**
+     * Merge data from other CommandContext object.
+     *
+     * <p>Become useful when part of processing is done in external "branch" and separate CommandContext was
+     * created.
+     */
+    public void merge(CommandContext other) { }
+
     protected CommandContext(String correlationId, long createTime) {
         this.correlationId = correlationId;
         this.createTime = System.currentTimeMillis();

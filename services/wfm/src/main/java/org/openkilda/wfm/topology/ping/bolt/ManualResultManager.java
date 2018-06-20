@@ -13,20 +13,8 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.error;
+package org.openkilda.wfm.topology.ping.bolt;
 
-import lombok.Getter;
-
-public class JsonEncodeException extends AbstractException {
-    @Getter
-    private final Object subject;
-
-    public JsonEncodeException(Object subject, Throwable throwable) {
-        super(formatMessage(subject, throwable), throwable);
-        this.subject = subject;
-    }
-
-    private static String formatMessage(Object subject, Throwable cause) {
-        return String.format("Can't encode %s object into JSON: %s", subject.getClass().getName(), cause);
-    }
+public class ManualResultManager extends ResultManager {
+    public static final String BOLT_ID = ComponentId.MANUAL_RESULT_MANAGER.toString();
 }

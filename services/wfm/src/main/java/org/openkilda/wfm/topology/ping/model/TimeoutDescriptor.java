@@ -19,11 +19,21 @@ import org.openkilda.wfm.CommandContext;
 
 import lombok.Data;
 
-@Data
-public class TimeoutDescriptor {
-    private boolean active = true;
+import java.util.UUID;
 
-    private final long expireAt;
+@Data
+public class TimeoutDescriptor extends Expirable<UUID> {
     private final PingContext pingContext;
     private final CommandContext commandContext;
+
+    public TimeoutDescriptor(long expireAt, PingContext pingContext, CommandContext commandContext) {
+        super(expireAt);
+        this.pingContext = pingContext;
+        this.commandContext = commandContext;
+    }
+
+    @Override
+    public UUID getExpirableKey() {
+        return getPingContext().getPingId();
+    }
 }

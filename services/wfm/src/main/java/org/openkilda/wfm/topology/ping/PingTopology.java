@@ -24,14 +24,20 @@ import org.openkilda.wfm.topology.AbstractTopology;
 import org.openkilda.wfm.topology.ping.bolt.Blacklist;
 import org.openkilda.wfm.topology.ping.bolt.ComponentId;
 import org.openkilda.wfm.topology.ping.bolt.FlowFetcher;
+import org.openkilda.wfm.topology.ping.bolt.ManualResultManager;
 import org.openkilda.wfm.topology.ping.bolt.MonotonicTick;
+import org.openkilda.wfm.topology.ping.bolt.PeriodicResultManager;
 import org.openkilda.wfm.topology.ping.bolt.PingProducer;
 import org.openkilda.wfm.topology.ping.bolt.PingRouter;
+import org.openkilda.wfm.topology.ping.bolt.ResultDispatcher;
+import org.openkilda.wfm.topology.ping.bolt.SpeakerDecoder;
 import org.openkilda.wfm.topology.ping.bolt.SpeakerEncoder;
+import org.openkilda.wfm.topology.ping.bolt.StatsCoupler;
 import org.openkilda.wfm.topology.ping.bolt.TimeoutManager;
 
 import org.apache.storm.generated.StormTopology;
 import org.apache.storm.kafka.bolt.KafkaBolt;
+import org.apache.storm.kafka.spout.KafkaSpout;
 import org.apache.storm.topology.TopologyBuilder;
 import org.apache.storm.tuple.Fields;
 
@@ -47,27 +53,40 @@ public class PingTopology extends AbstractTopology<PingTopologyConfig> {
         // TODO: cancel error reporting for removed flows
 
         monotonicTick(topology);
+
+        speakerInput(topology);
+        speakerOutput(topology);
+
         flowFetcher(topology);
         pingProducer(topology);
         pingRouter(topology);
         blacklist(topology);
         timeoutManager(topology);
+        resultDispatcher(topology);
+        periodicResultManager(topology);
+        manualResultManager(topology);
+        statsCoupler(topology);
 
         speakerEncoder(topology);
-
-        speakerOutput(topology);
+        speakerDecoder(topology);
 
         return topology.createTopology();
     }
 
-//    private void attachFloodlightInput(TopologyBuilder topology) {
-//        String spoutId = ComponentId.FLOODLIGHT_IN.toString();
-//        KafkaSpout<String, String> spout = createKafkaSpout(config.getKafkaSpeakerTopic(), spoutId);
-//        topology.setSpout(spoutId, spout);
-//    }
-
     private void monotonicTick(TopologyBuilder topology) {
         topology.setBolt(MonotonicTick.BOLT_ID, new MonotonicTick(topologyConfig.getPingInterval()));
+    }
+
+    private void speakerInput(TopologyBuilder topology) {
+        KafkaSpout<String, String> spout = createKafkaSpout(
+                topologyConfig.getKafkaPingTopic(), ComponentId.SPEAKER_INPUT.toString());
+        topology.setSpout(ComponentId.SPEAKER_INPUT.toString(), spout);
+    }
+
+    private void speakerOutput(TopologyBuilder topology) {
+        KafkaBolt bolt = createKafkaBolt(topologyConfig.getKafkaSpeakerTopic());
+        topology.setBolt(ComponentId.SPEAKER_OUTPUT.toString(), bolt)
+                .shuffleGrouping(SpeakerEncoder.BOLT_ID);
     }
 
     private void flowFetcher(TopologyBuilder topology) {
@@ -90,13 +109,17 @@ public class PingTopology extends AbstractTopology<PingTopologyConfig> {
         PingRouter bolt = new PingRouter();
         topology.setBolt(PingRouter.BOLT_ID, bolt)
                 .shuffleGrouping(PingProducer.BOLT_ID)
-                .shuffleGrouping(Blacklist.BOLT_ID);
+                .shuffleGrouping(Blacklist.BOLT_ID)
+                .shuffleGrouping(
+                        PeriodicResultManager.BOLT_ID, PeriodicResultManager.STREAM_BLACKLIST_ID);
     }
 
     private void blacklist(TopologyBuilder topology) {
         Blacklist bolt = new Blacklist();
+        Fields grouping = new Fields(PingRouter.FIELD_ID_PING_MATCH);
         topology.setBolt(Blacklist.BOLT_ID, bolt)
-                .fieldsGrouping(PingRouter.BOLT_ID, new Fields(PingRouter.FIELD_ID_PING_MATCH));
+                .fieldsGrouping(PingRouter.BOLT_ID, PingRouter.STREAM_BLACKLIST_FILTER_ID, grouping)
+                .fieldsGrouping(PingRouter.BOLT_ID, PingRouter.STREAM_BLACKLIST_UPDATE_ID, grouping);
     }
 
     private void timeoutManager(TopologyBuilder topology) {
@@ -106,16 +129,43 @@ public class PingTopology extends AbstractTopology<PingTopologyConfig> {
                 .fieldsGrouping(PingRouter.BOLT_ID, new Fields(PingRouter.FIELD_ID_PING_ID));
     }
 
+    private void resultDispatcher(TopologyBuilder topology) {
+        ResultDispatcher bolt = new ResultDispatcher();
+        topology.setBolt(ResultDispatcher.BOLT_ID, bolt)
+                .shuffleGrouping(TimeoutManager.BOLT_ID, TimeoutManager.STREAM_RESPONSE_ID);
+    }
+
+    private void periodicResultManager(TopologyBuilder topology) {
+        PeriodicResultManager bolt = new PeriodicResultManager();
+        topology.setBolt(PeriodicResultManager.BOLT_ID, bolt)
+                .shuffleGrouping(ResultDispatcher.BOLT_ID, ResultDispatcher.STREAM_PERIODIC_ID);
+    }
+
+    private void manualResultManager(TopologyBuilder topology) {
+        ManualResultManager bolt = new ManualResultManager();
+        topology.setBolt(ManualResultManager.BOLT_ID, bolt)
+                .shuffleGrouping(ResultDispatcher.BOLT_ID, ResultDispatcher.STREAM_MANUAL_ID);
+    }
+
+    private void statsCoupler(TopologyBuilder topology) {
+        StatsCoupler bolt = new StatsCoupler(topologyConfig.getPingInterval());
+        topology.setBolt(StatsCoupler.BOLT_ID, bolt)
+                .allGrouping(MonotonicTick.BOLT_ID)
+                .fieldsGrouping(
+                        PeriodicResultManager.BOLT_ID, PeriodicResultManager.STREAM_STATS_ID,
+                        new Fields(PeriodicResultManager.FIELD_ID_FLOW_ID));
+    }
+
     private void speakerEncoder(TopologyBuilder topology) {
         SpeakerEncoder bolt = new SpeakerEncoder();
         topology.setBolt(SpeakerEncoder.BOLT_ID, bolt)
                 .shuffleGrouping(TimeoutManager.BOLT_ID, TimeoutManager.STREAM_REQUEST_ID);
     }
 
-    private void speakerOutput(TopologyBuilder topology) {
-        KafkaBolt bolt = createKafkaBolt(topologyConfig.getKafkaSpeakerTopic());
-        topology.setBolt(ComponentId.SPEAKER_OUTPUT.toString(), bolt)
-                .shuffleGrouping(SpeakerEncoder.BOLT_ID);
+    private void speakerDecoder(TopologyBuilder topology) {
+        SpeakerDecoder bolt = new SpeakerDecoder();
+        topology.setBolt(SpeakerDecoder.BOLT_ID, bolt)
+                .shuffleGrouping(ComponentId.SPEAKER_INPUT.toString());
     }
 
     /**

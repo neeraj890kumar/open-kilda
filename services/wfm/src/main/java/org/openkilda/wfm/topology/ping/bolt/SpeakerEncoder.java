@@ -30,7 +30,7 @@ import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
 
-public class SpeakerEncoder extends AbstractBolt {
+public class SpeakerEncoder extends Abstract {
     public static final String BOLT_ID = ComponentId.SPEAKER_ENCODER.toString();
 
     public static final String FIELD_ID_PAYLOAD = "payload";

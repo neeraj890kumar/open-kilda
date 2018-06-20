@@ -13,20 +13,18 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.error;
+package org.openkilda.wfm.topology.ping.model;
 
-import lombok.Getter;
+import lombok.Data;
 
-public class JsonEncodeException extends AbstractException {
-    @Getter
-    private final Object subject;
+@Data
+public abstract class Expirable<K> {
+    private boolean active = true;
+    private final long expireAt;
 
-    public JsonEncodeException(Object subject, Throwable throwable) {
-        super(formatMessage(subject, throwable), throwable);
-        this.subject = subject;
+    public Expirable(long expireAt) {
+        this.expireAt = expireAt;
     }
 
-    private static String formatMessage(Object subject, Throwable cause) {
-        return String.format("Can't encode %s object into JSON: %s", subject.getClass().getName(), cause);
-    }
+    public abstract K getExpirableKey();
 }

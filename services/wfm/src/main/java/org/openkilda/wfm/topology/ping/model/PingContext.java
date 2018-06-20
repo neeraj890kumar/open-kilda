@@ -1,5 +1,4 @@
-/*
- * Copyright 2018 Telstra Open Source
+/* Copyright 2018 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -36,6 +35,7 @@ public class PingContext implements Serializable {
     }
 
     private Kinds kind;
+    private UUID pingCoupleId;
     private BidirectionalFlow flow;
     private FlowDirection direction;
 
@@ -47,6 +47,7 @@ public class PingContext implements Serializable {
     public PingContext(Kinds kind, BidirectionalFlow flow) {
         this.kind = kind;
         this.flow = flow;
+        this.pingCoupleId = UUID.randomUUID();
     }
 
     public String getFlowId() {
@@ -58,6 +59,27 @@ public class PingContext implements Serializable {
             return null;
         }
         return ping.getPingId();
+    }
+
+    public boolean isError() {
+        return error != null;
+    }
+
+    public boolean isPermanentError() {
+        if (! isError()) {
+            return false;
+        }
+
+        boolean result;
+        switch (error) {
+            case NOT_CAPABLE:
+                result = true;
+                break;
+
+            default:
+                result = false;
+        }
+        return result;
     }
 
     @Override

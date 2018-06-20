@@ -22,17 +22,16 @@ import org.openkilda.messaging.model.Ping;
 import org.openkilda.wfm.CommandContext;
 import org.openkilda.wfm.error.AbstractException;
 import org.openkilda.wfm.error.PipelineException;
-import org.openkilda.wfm.topology.ping.PingContext;
+import org.openkilda.wfm.topology.ping.model.PingContext;
 
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
 
-public class PingProducer extends AbstractBolt {
+public class PingProducer extends Abstract {
     public static final String BOLT_ID = ComponentId.PING_PRODUCER.toString();
 
-    public static final String FIELD_ID_PING_ID = "ping-id";
     public static final Fields STREAM_FIELDS = new Fields(FIELD_ID_PING, FIELD_ID_CONTEXT);
 
     @Override
@@ -53,8 +52,8 @@ public class PingProducer extends AbstractBolt {
 
     private void emit(Tuple input, PingContext pingContext) throws PipelineException {
         CommandContext commandContext = pullContext(input);
-        Values payload = new Values(pingContext, commandContext);
-        getOutput().emit(input, payload);
+        Values output = new Values(pingContext, commandContext);
+        getOutput().emit(input, output);
     }
 
     private Flow getUnidirectionalFlow(BidirectionalFlow flow, FlowDirection direction) {

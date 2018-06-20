@@ -26,7 +26,7 @@ import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
 
-public class PingRouter extends AbstractBolt {
+public class PingRouter extends Abstract {
     public static final String BOLT_ID = ComponentId.PING_ROUTER.toString();
 
     public static final String FIELD_ID_PING_ID = "ping.id";
@@ -35,14 +35,16 @@ public class PingRouter extends AbstractBolt {
 
     public static final Fields STREAM_BLACKLIST_FILTER_FIELDS = new Fields(
             FIELD_ID_PING_MATCH, FIELD_ID_PING, FIELD_ID_CONTEXT);
-    public static final String STREAM_BLACKLIST_FILTER_ID = "blacklist";
+    public static final String STREAM_BLACKLIST_FILTER_ID = "blacklist.filter";
+
+    public static final Fields STREAM_BLACKLIST_UPDATE_FIELDS = STREAM_BLACKLIST_FILTER_FIELDS;
+    public static final String STREAM_BLACKLIST_UPDATE_ID = "blacklist.update";
 
     public static final Fields STREAM_REQUEST_FIELDS = new Fields(
             FIELD_ID_PING_ID, FIELD_ID_PING, FIELD_ID_CONTEXT);
     public static final String STREAM_REQUEST_ID = "request";
 
-    public static final Fields STREAM_RESPONSE_FIELDS = new Fields(
-            FIELD_ID_PING_ID, FIELD_ID_RESPONSE, FIELD_ID_CONTEXT);
+    public static final Fields STREAM_RESPONSE_FIELDS = STREAM_REQUEST_FIELDS;
     public static final String STREAM_RESPONSE_ID = "response";
 
     @Override
@@ -54,6 +56,8 @@ public class PingRouter extends AbstractBolt {
             routeBlacklist(input);
         } else if (SpeakerDecoder.BOLT_ID.equals(component)) {
             routeSpeakerDecoder(input);
+        } else if (PeriodicResultManager.BOLT_ID.equals(component)) {
+            routePeriodicResultManager(input);
         } else {
             unhandledInput(input);
         }
@@ -61,22 +65,26 @@ public class PingRouter extends AbstractBolt {
 
     private void routePingProducer(Tuple input) throws PipelineException {
         PingContext pingContext = pullPingContext(input);
-        CommandContext commandContext = pullContext(input);
-
-        Values payload = new Values(pingContext.getPing(), pingContext, commandContext);
-        getOutput().emit(STREAM_BLACKLIST_FILTER_ID, input, payload);
+        Values output = new Values(pingContext.getPing(), pingContext, pullContext(input));
+        getOutput().emit(STREAM_BLACKLIST_FILTER_ID, input, output);
     }
 
     private void routeBlacklist(Tuple input) throws PipelineException {
-        final PingContext pingContext = pullPingContext(input);
-        Values payload = new Values(pingContext.getPingId(), pingContext, pullContext(input));
-        getOutput().emit(STREAM_REQUEST_ID, input, payload);
+        PingContext pingContext = pullPingContext(input);
+        Values output = new Values(pingContext.getPingId(), pingContext, pullContext(input));
+        getOutput().emit(STREAM_REQUEST_ID, input, output);
     }
 
     private void routeSpeakerDecoder(Tuple input) throws PipelineException {
         PingResponse response = pullFlowResponse(input);
-        Values payload = new Values(response.getPing().getPingId(), response, pullContext(input));
-        getOutput().emit(STREAM_RESPONSE_ID, input, payload);
+        Values output = new Values(response.getPing().getPingId(), response, pullContext(input));
+        getOutput().emit(STREAM_RESPONSE_ID, input, output);
+    }
+
+    private void routePeriodicResultManager(Tuple input) throws PipelineException {
+        PingContext pingContext = pullPingContext(input);
+        Values output = new Values(pingContext.getPing(), pingContext, pullContext(input));
+        getOutput().emit(STREAM_BLACKLIST_UPDATE_ID, input, output);
     }
 
     private PingResponse pullFlowResponse(Tuple input) throws PipelineException {
@@ -92,6 +100,7 @@ public class PingRouter extends AbstractBolt {
     @Override
     public void declareOutputFields(OutputFieldsDeclarer outputManager) {
         outputManager.declareStream(STREAM_BLACKLIST_FILTER_ID, STREAM_BLACKLIST_FILTER_FIELDS);
+        outputManager.declareStream(STREAM_BLACKLIST_UPDATE_ID, STREAM_BLACKLIST_UPDATE_FIELDS);
         outputManager.declareStream(STREAM_REQUEST_ID, STREAM_REQUEST_FIELDS);
         outputManager.declareStream(STREAM_RESPONSE_ID, STREAM_RESPONSE_FIELDS);
     }

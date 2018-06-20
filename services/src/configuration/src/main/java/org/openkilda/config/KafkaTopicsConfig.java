@@ -61,6 +61,10 @@ public interface KafkaTopicsConfig {
     @Default("kilda.speaker")
     String getSpeakerTopic();
 
+    @Key("ping")
+    @Default("kilda.ping")
+    String getPingTopic();
+
     @Key("stats")
     @Default("kilda.stats")
     String getStatsTopic();
