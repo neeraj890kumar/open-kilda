@@ -27,13 +27,10 @@ import org.openkilda.wfm.topology.ping.PingContext;
 import org.openkilda.wfm.topology.ping.PingContext.Kinds;
 
 import org.apache.storm.task.OutputCollector;
-import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
-
-import java.util.Map;
 
 public class FlowFetcher extends AbstractBolt {
     public static final String BOLT_ID = ComponentId.FLOW_FETCHER.toString();
@@ -62,7 +59,7 @@ public class FlowFetcher extends AbstractBolt {
     private void handleTimerTrigger(Tuple input) throws PipelineException {
         PathComputerFlowFetcher fetcher = new PathComputerFlowFetcher(pathComputer);
 
-        final CommandContext commandContext = getContext(input);
+        final CommandContext commandContext = pullContext(input);
         final OutputCollector output = getOutput();
         for (BidirectionalFlow flow : fetcher.getFlows()) {
             PingContext pingContext = new PingContext(Kinds.PERIODIC, flow);

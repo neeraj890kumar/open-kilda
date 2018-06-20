@@ -37,7 +37,7 @@ public class PingProducer extends AbstractBolt {
 
     @Override
     protected void handleInput(Tuple input) throws AbstractException {
-        PingContext pingContext = getPingContext(input);
+        PingContext pingContext = pullPingContext(input);
 
         // TODO(surabujin): add one switch flow filter
         emit(input, produce(pingContext, FlowDirection.FORWARD));
@@ -52,7 +52,7 @@ public class PingProducer extends AbstractBolt {
     }
 
     private void emit(Tuple input, PingContext pingContext) throws PipelineException {
-        CommandContext commandContext = getContext(input);
+        CommandContext commandContext = pullContext(input);
         Values payload = new Values(pingContext, commandContext);
         getOutput().emit(input, payload);
     }

@@ -22,13 +22,16 @@ import org.openkilda.wfm.error.ConfigurationException;
 import org.openkilda.wfm.error.NameCollisionException;
 import org.openkilda.wfm.topology.AbstractTopology;
 import org.openkilda.wfm.topology.ping.bolt.Blacklist;
+import org.openkilda.wfm.topology.ping.bolt.ComponentId;
 import org.openkilda.wfm.topology.ping.bolt.FlowFetcher;
 import org.openkilda.wfm.topology.ping.bolt.MonotonicTick;
 import org.openkilda.wfm.topology.ping.bolt.PingProducer;
 import org.openkilda.wfm.topology.ping.bolt.PingRouter;
+import org.openkilda.wfm.topology.ping.bolt.SpeakerEncoder;
 import org.openkilda.wfm.topology.ping.bolt.TimeoutManager;
 
 import org.apache.storm.generated.StormTopology;
+import org.apache.storm.kafka.bolt.KafkaBolt;
 import org.apache.storm.topology.TopologyBuilder;
 import org.apache.storm.tuple.Fields;
 
@@ -50,19 +53,9 @@ public class PingTopology extends AbstractTopology<PingTopologyConfig> {
         blacklist(topology);
         timeoutManager(topology);
 
-//        attachFlowSync(topology);
-//        attachFloodlightInput(topology);
-//
-//        attachPingTick(topology);
-//        monotonicTick(topology);
-//
-//        attachFlowSyncDecoder(topology);
-//        topology.setBolt(FloodlightDecoder.BOLT_ID, new FloodlightDecoder());
-//        attachFlowUpdateObserver(topology);
-//        attachFlowKeeper(topology);
-//        topology.setBolt(RequestProducer.BOLT_ID, new RequestProducer());
-//        topology.setBolt(ResponseConsumer.BOLT_ID, new ResponseConsumer());
-//        topology.setBolt(FloodlightEncoder.BOLT_ID, new FloodlightEncoder());
+        speakerEncoder(topology);
+
+        speakerOutput(topology);
 
         return topology.createTopology();
     }
@@ -107,20 +100,23 @@ public class PingTopology extends AbstractTopology<PingTopologyConfig> {
     }
 
     private void timeoutManager(TopologyBuilder topology) {
-        TimeoutManager bolt = new TimeoutManager();
+        TimeoutManager bolt = new TimeoutManager(topologyConfig.getTimeout());
         topology.setBolt(TimeoutManager.BOLT_ID, bolt)
+                .allGrouping(MonotonicTick.BOLT_ID)
                 .fieldsGrouping(PingRouter.BOLT_ID, new Fields(PingRouter.FIELD_ID_PING_ID));
     }
 
-//    private void attachFlowSyncDecoder(TopologyBuilder topology) {
-//        topology.setBolt(FlowSyncDecoder.BOLT_ID, new FlowSyncDecoder());
-//    }
-//
-//    private void attachFlowUpdateObserver(TopologyBuilder topology) {
-//        Auth pceAuth = config.getPathComputerAuth();
-//        topology.setBolt(FlowSyncObserver.BOLT_ID, new FlowSyncObserver(pceAuth))
-//                .allGrouping(MonotonicTick.BOLT_ID);
-//    }
+    private void speakerEncoder(TopologyBuilder topology) {
+        SpeakerEncoder bolt = new SpeakerEncoder();
+        topology.setBolt(SpeakerEncoder.BOLT_ID, bolt)
+                .shuffleGrouping(TimeoutManager.BOLT_ID, TimeoutManager.STREAM_REQUEST_ID);
+    }
+
+    private void speakerOutput(TopologyBuilder topology) {
+        KafkaBolt bolt = createKafkaBolt(topologyConfig.getKafkaSpeakerTopic());
+        topology.setBolt(ComponentId.SPEAKER_OUTPUT.toString(), bolt)
+                .shuffleGrouping(SpeakerEncoder.BOLT_ID);
+    }
 
     /**
      * Topology entry point.

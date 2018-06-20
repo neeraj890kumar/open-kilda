@@ -24,16 +24,17 @@ public enum ComponentId {
     BLACKLIST("blacklist"),
     TIMEOUT_MANAGER("timeout_manager"),
 
-    FLOODLIGHT_ENCODER("floodlight.encoder"),
+    SPEAKER_ENCODER("speaker.encoder"),
+    SPEAKER_DECODER("speaker.decoder"),
+
+    SPEAKER_OUTPUT("speaker.output"),
 
     /*
-    FLODDLIGHT_DECODER("floodlight.decoder"),
-
     FLOODLIGHT_IN("floodlight.kafka.in"),
 
     FLOW_SYNC_OUT("flow_sync.out"),
     FLOW_STATS_OUT("flow_stats.out"),
-    FLOODLIGHT_OUT("floodlight.kafka.out")*/;
+    */;
 
     private final String value;
 

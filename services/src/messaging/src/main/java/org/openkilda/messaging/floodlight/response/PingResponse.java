@@ -28,6 +28,9 @@ public class PingResponse extends InfoData {
     @JsonProperty("ping")
     private Ping ping;
 
+    @JsonProperty("error")
+    private Ping.Errors error;
+
     @JsonProperty("meters")
     private PingMeters meters;
 }

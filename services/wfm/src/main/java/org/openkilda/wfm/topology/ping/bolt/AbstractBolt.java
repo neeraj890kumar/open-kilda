@@ -16,20 +16,20 @@
 package org.openkilda.wfm.topology.ping.bolt;
 
 import org.openkilda.wfm.error.PipelineException;
-import org.openkilda.wfm.topology.ping.PingContext;
+import org.openkilda.wfm.topology.ping.model.PingContext;
 
 import org.apache.storm.tuple.Tuple;
 
 public abstract class AbstractBolt extends org.openkilda.wfm.AbstractBolt {
     public static final String FIELD_ID_PING = "ping";
 
-    protected PingContext getPingContext(Tuple input) throws PipelineException {
-        PingContext context;
+    protected PingContext pullPingContext(Tuple input) throws PipelineException {
+        PingContext value;
         try {
-            context = (PingContext) input.getValueByField(FIELD_ID_PING);
+            value = (PingContext) input.getValueByField(FIELD_ID_PING);
         } catch (ClassCastException e) {
             throw new PipelineException(this, input, FIELD_ID_PING, e.toString());
         }
-        return context;
+        return value;
     }
 }

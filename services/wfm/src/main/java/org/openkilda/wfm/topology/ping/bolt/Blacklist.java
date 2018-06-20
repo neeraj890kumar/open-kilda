@@ -17,7 +17,7 @@ package org.openkilda.wfm.topology.ping.bolt;
 
 import org.openkilda.messaging.model.Ping;
 import org.openkilda.wfm.error.AbstractException;
-import org.openkilda.wfm.topology.ping.PingContext;
+import org.openkilda.wfm.topology.ping.model.PingContext;
 
 import lombok.extern.log4j.Log4j2;
 import org.apache.storm.topology.OutputFieldsDeclarer;
@@ -33,13 +33,13 @@ public class Blacklist extends AbstractBolt {
 
     @Override
     protected void handleInput(Tuple input) throws AbstractException {
-        PingContext pingContext = getPingContext(input);
+        PingContext pingContext = pullPingContext(input);
         if (isBlacklisted(pingContext.getPing())) {
             log.debug("{} canceled due to blacklist match", pingContext);
             return;
         }
 
-        Values payload = new Values(pingContext, getContext(input));
+        Values payload = new Values(pingContext, pullContext(input));
         getOutput().emit(input, payload);
     }
 

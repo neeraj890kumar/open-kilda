@@ -60,19 +60,19 @@ public abstract class AbstractBolt extends BaseRichBolt {
 
     protected void init() { }
 
-    protected CommandContext getContext(Tuple input) throws PipelineException {
-        final CommandContext context;
+    protected CommandContext pullContext(Tuple input) throws PipelineException {
+        CommandContext value;
         try {
             Object raw = input.getValueByField(FIELD_ID_CONTEXT);
             if (raw instanceof String) {
-                context = new CommandContext((String) raw);
+                value = new CommandContext((String) raw);
             } else {
-                context = (CommandContext) raw;
+                value = (CommandContext) raw;
             }
         } catch (ClassCastException e) {
             throw new PipelineException(this, input, FIELD_ID_CONTEXT, e.toString());
         }
-        return context;
+        return value;
     }
 
     protected OutputCollector getOutput() {

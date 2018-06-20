@@ -13,11 +13,17 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.ping.bolt;
+package org.openkilda.wfm.topology.ping.model;
 
-import org.openkilda.wfm.AbstractBolt;
+import org.openkilda.wfm.CommandContext;
 
-public class FloodlightEncoder extends AbstractBolt {
-    public static final String BOLT_ID = ComponentId.FLOODLIGHT_ENCODER.toString();
+import lombok.Data;
 
+@Data
+public class TimeoutDescriptor {
+    private boolean active = true;
+
+    private final long expireAt;
+    private final PingContext pingContext;
+    private final CommandContext commandContext;
 }

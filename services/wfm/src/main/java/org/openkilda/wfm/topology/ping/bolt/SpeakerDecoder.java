@@ -17,7 +17,8 @@ package org.openkilda.wfm.topology.ping.bolt;
 
 import org.openkilda.wfm.AbstractBolt;
 
-public class FloodlightDecoder extends AbstractBolt {
-    public static final String BOLT_ID = ComponentId.FLODDLIGHT_DECODER.toString();
+public class SpeakerDecoder extends AbstractBolt {
+    public static final String BOLT_ID = ComponentId.SPEAKER_DECODER.toString();
 
+    public static final String FIELD_ID_RESPONSE = "response";
 }

@@ -1,4 +1,5 @@
-/* Copyright 2018 Telstra Open Source
+/*
+ * Copyright 2018 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -13,7 +14,7 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.ping;
+package org.openkilda.wfm.topology.ping.model;
 
 import org.openkilda.messaging.model.BidirectionalFlow;
 import org.openkilda.messaging.model.FlowDirection;
@@ -62,7 +63,6 @@ public class PingContext implements Serializable {
     @Override
     public String toString() {
         return String.format(
-                "<%s{flowId=%s, error=%s: %s}>",
-                getClass().getCanonicalName(), getFlowId(), getPingId(), getError(), getPing());
+                "<%s{flowId=%s, error=%s: %s}>", getClass().getCanonicalName(), getFlowId(), getError(), getPing());
     }
 }

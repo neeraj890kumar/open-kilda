@@ -18,6 +18,7 @@ package org.openkilda.wfm.topology.ping;
 import org.openkilda.wfm.topology.AbstractTopologyConfig;
 
 import com.sabre.oss.conf4j.annotation.Configuration;
+import com.sabre.oss.conf4j.annotation.Default;
 import com.sabre.oss.conf4j.annotation.IgnoreKey;
 import com.sabre.oss.conf4j.annotation.Key;
 
@@ -30,10 +31,23 @@ public interface PingTopologyConfig extends AbstractTopologyConfig {
         return getPingConfig().getPingInterval();
     }
 
+    default int getTimeout() {
+        return getPingConfig().getTimeout();
+    }
+
+    default String getKafkaSpeakerTopic() {
+        return getKafkaTopics().getSpeakerTopic();
+    }
+
     @Configuration
     @Key("flow.ping")
     interface PingConfig {
         @Key("interval")
+        @Default("5")
         int getPingInterval();
+
+        @Key({"timeout"})
+        @Default("2")
+        int getTimeout();
     }
 }
