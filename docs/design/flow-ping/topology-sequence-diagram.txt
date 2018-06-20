@@ -12,7 +12,8 @@ participant PingProducer
 participant PingRouter
 participant Blacklist
 participant TimeoutManager
-participant ResultManager
+participant ResultDispatcher
+participant PeriodicResultManager
 participant StatsProducer
 participant FailReporter
 participant SpeakerEncoder
@@ -91,12 +92,15 @@ alt normal workflow
     PingRouter -> TimeoutManager: PingResponse\n(field grouping)
     note right of TimeoutManager: cancel timeout
 
-    TimeoutManager -> ResultManager: PingContext\n(field grouping)
-    activate ResultManager
-    ResultManager -> FailReporter: flow-ok\n(field grouping)
+    TimeoutManager -> ResultDispatcher: PingContext
+    activate ResultDispatcher
+    ResultDispatcher -> PeriodicResultManager: PingContext
+    deactivate ResultDispatcher
+    activate PeriodicResultManager
+    PeriodicResultManager -> FailReporter: flow-ok\n(field grouping)
     note right of FailReporter: reset fail flag
-    ResultManager -> StatsProducer: PingContext\n(field grouping)
-    deactivate ResultManager
+    PeriodicResultManager -> StatsProducer: PingContext\n(field grouping)
+    deactivate PeriodicResultManager
 
     activate StatsProducer
     StatsProducer -> kilda.stats: flow ping stats
@@ -115,14 +119,17 @@ else lack of capabilities
 
     PingRouter -> TimeoutManager: ping response\n(field grouping)
     note right of TimeoutManager: cancel timeout
-    TimeoutManager -> ResultManager: PingContext\n(field grouping)
-    activate ResultManager
-    ResultManager -> FailReporter: pingContest\n(field grouping)
+    TimeoutManager -> ResultDispatcher: PingContext
+    activate ResultDispatcher
+    ResultDispatcher -> PeriodicResultManager: PingContext
+    deactivate ResultDispatcher
+    activate PeriodicResultManager
+    PeriodicResultManager -> FailReporter: pingContest\n(field grouping)
     note right of FailReporter: reset fail flag
 
-    ResultManager -> ResultManager: log warning
-    ResultManager -> PingRouter: PingContext
-    deactivate ResultManager
+    PeriodicResultManager -> PeriodicResultManager: log warning
+    PeriodicResultManager -> PingRouter: PingContext
+    deactivate PeriodicResultManager
 
     activate PingRouter
     PingRouter -> Blacklist: PingContext\n(field grouping)
@@ -136,12 +143,15 @@ else timeout
     Time -> TimeoutManager: X monotonic tick
     Time -> TimeoutManager: X + N monotonic tick
     note right of TimeoutManager: log error
-    TimeoutManager -> ResultManager: PingContext\n(field grouping)
+    TimeoutManager -> ResultDispatcher: PingContext
     deactivate TimeoutManager
-    activate ResultManager
+    activate ResultDispatcher
+    ResultDispatcher -> PeriodicResultManager: PingContext
+    deactivate ResultDispatcher
+    activate PeriodicResultManager
 
-    ResultManager -> FailReporter: PingContext\n(field grouping)
-    deactivate ResultManager
+    PeriodicResultManager -> FailReporter: PingContext\n(field grouping)
+    deactivate PeriodicResultManager
     activate FailReporter
 
     note right of FailReporter: set fail flag
