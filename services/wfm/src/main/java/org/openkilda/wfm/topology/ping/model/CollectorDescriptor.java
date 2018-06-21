@@ -18,20 +18,40 @@ package org.openkilda.wfm.topology.ping.model;
 import lombok.Data;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.UUID;
 
 @Data
 public class CollectorDescriptor extends Expirable<GroupId> {
-    private final GroupId group;
+    private final GroupId groupId;
     private final List<PingContext> records = new ArrayList<>();
+    private final HashSet<UUID> seenRecords = new HashSet<>();
 
-    public CollectorDescriptor(long expireAt, GroupId group) {
+    public CollectorDescriptor(long expireAt, GroupId groupId) {
         super(expireAt);
-        this.group = group;
+        this.groupId = groupId;
+    }
+
+    public void add(PingContext pingContext) {
+        if (! seenRecords.add(pingContext.getPingId())) {
+            throw new IllegalArgumentException(String.format(
+                    "groupId collision detected - ping %s already stored in groupId %s",
+                    pingContext.getPing(), getGroupId()));
+        }
+        records.add(pingContext);
+    }
+
+    public Group makeGroup() {
+        return new Group(getGroupId(), getRecords());
+    }
+
+    public boolean isCompleted() {
+        return records.size() == getGroupId().getSize();
     }
 
     @Override
     public GroupId getExpirableKey() {
-        return getGroup();
+        return getGroupId();
     }
 }

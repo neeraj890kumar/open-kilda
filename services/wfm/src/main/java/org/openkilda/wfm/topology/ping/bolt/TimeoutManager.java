@@ -96,7 +96,7 @@ public class TimeoutManager extends Abstract {
     private void handleTimeTick(Tuple input) {
         final long now = input.getLongByField(MonotonicTick.FIELD_ID_TIME_MILLIS);
         for (TimeoutDescriptor descriptor : pendingPings.expire(now)) {
-            emitTimeout(input, descriptor);
+            emitTimeout(input, descriptor, now);
         }
     }
 
@@ -141,6 +141,7 @@ public class TimeoutManager extends Abstract {
         descriptor.getCommandContext().merge(pullContext(input));
 
         PingContext pingContext = descriptor.getPingContext().toBuilder()
+                .timestamp(response.getTimestamp())
                 .error(response.getError())
                 .meters(response.getMeters())
                 .build();
@@ -149,20 +150,17 @@ public class TimeoutManager extends Abstract {
         getOutput().emit(STREAM_RESPONSE_ID, input, output);
     }
 
-    private void emitTimeout(Tuple input, TimeoutDescriptor descriptor) {
-        PingContext pingTimeout = descriptor.getPingContext().toBuilder().error(Errors.TIMEOUT).build();
+    private void emitTimeout(Tuple input, TimeoutDescriptor descriptor, long timestamp) {
+        PingContext pingTimeout = descriptor.getPingContext().toBuilder()
+                .timestamp(timestamp)
+                .error(Errors.TIMEOUT)
+                .build();
         Values output = new Values(pingTimeout.getFlowId(), pingTimeout, descriptor.getCommandContext());
         getOutput().emit(STREAM_TIMEOUT_ID, input, output);
     }
 
     private PingResponse pullPingResponse(Tuple input) throws PipelineException {
-        PingResponse value;
-        try {
-            value = (PingResponse) input.getValueByField(PingRouter.FIELD_ID_RESPONSE);
-        } catch (ClassCastException e) {
-            throw new PipelineException(this, input, PingRouter.FIELD_ID_RESPONSE, e.toString());
-        }
-        return value;
+        return pullValue(input, PingRouter.FIELD_ID_RESPONSE, PingResponse.class);
     }
 
     @Override

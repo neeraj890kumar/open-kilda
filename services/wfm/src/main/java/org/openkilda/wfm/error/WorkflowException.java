@@ -13,20 +13,23 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.ping.model;
+package org.openkilda.wfm.error;
 
-import lombok.Value;
+import org.openkilda.wfm.AbstractBolt;
 
-import java.io.Serializable;
-import java.util.UUID;
+import lombok.Getter;
+import org.apache.storm.tuple.Tuple;
 
-@Value
-public class GroupId implements Serializable {
-    private UUID id;
-    private int size;
+@Getter
+public class WorkflowException extends AbstractException {
+    private final Tuple input;
 
-    public GroupId(int size) {
-        this.size = size;
-        this.id = UUID.randomUUID();
+    public WorkflowException(AbstractBolt consumer, Tuple input, String details) {
+        super(formatMessage(consumer, details));
+        this.input = input;
+    }
+
+    private static String formatMessage(AbstractBolt consumer, String details) {
+        return String.format("Workflow error at %s - %s", consumer.getClass().getName(), details);
     }
 }

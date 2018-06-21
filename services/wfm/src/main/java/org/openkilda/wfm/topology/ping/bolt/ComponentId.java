@@ -29,7 +29,9 @@ public enum ComponentId {
     RESULT_DISPATCHER("result.dispatcher"),
     PERIODIC_RESULT_MANAGER("result_manager.periodic"),
     MANUAL_RESULT_MANAGER("result_manager.manual"),
-    STATS_COUPLER("stats_coupler"),
+    GROUP_COLLECTOR("group_collector"),
+    STATS_PRODUCER("stats_producer"),
+    FAIL_REPORTER("fail_reporter"),
 
     SPEAKER_ENCODER("speaker.encoder"),
     SPEAKER_DECODER("speaker.decoder"),

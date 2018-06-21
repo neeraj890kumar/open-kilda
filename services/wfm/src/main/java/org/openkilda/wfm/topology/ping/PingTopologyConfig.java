@@ -35,6 +35,14 @@ public interface PingTopologyConfig extends AbstractTopologyConfig {
         return getPingConfig().getTimeout();
     }
 
+    default int getFailDelay() {
+        return getPingConfig().getFailDelay();
+    }
+
+    default int getFailReset() {
+        return getPingConfig().getFailReset();
+    }
+
     default String getKafkaPingTopic() {
         return getKafkaTopics().getPingTopic();
     }
@@ -50,8 +58,16 @@ public interface PingTopologyConfig extends AbstractTopologyConfig {
         @Default("5")
         int getPingInterval();
 
-        @Key({"timeout"})
+        @Key("timeout")
         @Default("2")
         int getTimeout();
+
+        @Key("fail.delay")
+        @Default("30")
+        int getFailDelay();
+
+        @Key("fail.reset")
+        @Default("1800")
+        int getFailReset();
     }
 }

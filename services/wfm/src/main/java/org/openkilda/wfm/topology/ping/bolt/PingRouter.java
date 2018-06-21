@@ -88,13 +88,7 @@ public class PingRouter extends Abstract {
     }
 
     private PingResponse pullFlowResponse(Tuple input) throws PipelineException {
-        PingResponse value;
-        try {
-            value = (PingResponse) input.getValueByField(SpeakerDecoder.FIELD_ID_RESPONSE);
-        } catch (ClassCastException e) {
-            throw new PipelineException(this, input, SpeakerDecoder.FIELD_ID_RESPONSE, e.toString());
-        }
-        return value;
+        return pullValue(input, SpeakerDecoder.FIELD_ID_RESPONSE, PingResponse.class);
     }
 
     @Override

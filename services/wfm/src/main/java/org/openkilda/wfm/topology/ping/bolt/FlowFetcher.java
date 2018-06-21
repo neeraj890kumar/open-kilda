@@ -47,9 +47,9 @@ public class FlowFetcher extends Abstract {
 
     @Override
     protected void handleInput(Tuple input) throws AbstractException {
-        String componentId = input.getSourceComponent();
+        String component = input.getSourceComponent();
 
-        if (MonotonicTick.BOLT_ID.equals(componentId)) {
+        if (MonotonicTick.BOLT_ID.equals(component)) {
             handleTimerTrigger(input);
         } else {
             unhandledInput(input);

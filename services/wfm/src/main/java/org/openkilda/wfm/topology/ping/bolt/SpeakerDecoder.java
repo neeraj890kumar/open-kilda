@@ -49,13 +49,7 @@ public class SpeakerDecoder extends AbstractBolt {
     }
 
     private String pullPayload(Tuple input) throws PipelineException {
-        String value;
-        try {
-            value = input.getStringByField(KafkaRecordTranslator.FIELD_ID_PAYLOAD);
-        } catch (IllegalArgumentException | ClassCastException e) {
-            throw new PipelineException(this, input, KafkaRecordTranslator.FIELD_ID_PAYLOAD, e.toString());
-        }
-        return value;
+        return pullValue(input, KafkaRecordTranslator.FIELD_ID_PAYLOAD, String.class);
     }
 
     private InfoMessage decode(String json) throws JsonDecodeException {

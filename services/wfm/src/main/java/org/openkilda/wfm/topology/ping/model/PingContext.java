@@ -42,6 +42,7 @@ public class PingContext implements Serializable {
 
     private Ping ping;
 
+    private Long timestamp;
     private Ping.Errors error;
     private PingMeters meters;
 

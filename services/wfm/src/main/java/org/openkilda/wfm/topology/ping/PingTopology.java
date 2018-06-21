@@ -23,6 +23,7 @@ import org.openkilda.wfm.error.NameCollisionException;
 import org.openkilda.wfm.topology.AbstractTopology;
 import org.openkilda.wfm.topology.ping.bolt.Blacklist;
 import org.openkilda.wfm.topology.ping.bolt.ComponentId;
+import org.openkilda.wfm.topology.ping.bolt.FailReporter;
 import org.openkilda.wfm.topology.ping.bolt.FlowFetcher;
 import org.openkilda.wfm.topology.ping.bolt.ManualResultManager;
 import org.openkilda.wfm.topology.ping.bolt.MonotonicTick;
@@ -33,6 +34,7 @@ import org.openkilda.wfm.topology.ping.bolt.ResultDispatcher;
 import org.openkilda.wfm.topology.ping.bolt.SpeakerDecoder;
 import org.openkilda.wfm.topology.ping.bolt.SpeakerEncoder;
 import org.openkilda.wfm.topology.ping.bolt.GroupCollector;
+import org.openkilda.wfm.topology.ping.bolt.StatsProducer;
 import org.openkilda.wfm.topology.ping.bolt.TimeoutManager;
 
 import org.apache.storm.generated.StormTopology;
@@ -66,6 +68,8 @@ public class PingTopology extends AbstractTopology<PingTopologyConfig> {
         periodicResultManager(topology);
         manualResultManager(topology);
         groupCollector(topology);
+        statsProducer(topology);
+        failReporter(topology);
 
         speakerEncoder(topology);
         speakerDecoder(topology);
@@ -96,7 +100,7 @@ public class PingTopology extends AbstractTopology<PingTopologyConfig> {
 
         FlowFetcher bolt = new FlowFetcher(auth);
         topology.setBolt(FlowFetcher.BOLT_ID, bolt)
-                .shuffleGrouping(MonotonicTick.BOLT_ID, MonotonicTick.STREAM_PING_ID);
+                .globalGrouping(MonotonicTick.BOLT_ID, MonotonicTick.STREAM_PING_ID);
     }
 
     private void pingProducer(TopologyBuilder topology) {
@@ -138,7 +142,8 @@ public class PingTopology extends AbstractTopology<PingTopologyConfig> {
     private void periodicResultManager(TopologyBuilder topology) {
         PeriodicResultManager bolt = new PeriodicResultManager();
         topology.setBolt(PeriodicResultManager.BOLT_ID, bolt)
-                .shuffleGrouping(ResultDispatcher.BOLT_ID, ResultDispatcher.STREAM_PERIODIC_ID);
+                .shuffleGrouping(ResultDispatcher.BOLT_ID, ResultDispatcher.STREAM_PERIODIC_ID)
+                .shuffleGrouping(GroupCollector.BOLT_ID, GroupCollector.STREAM_PERIODIC_ID);
     }
 
     private void manualResultManager(TopologyBuilder topology) {
@@ -154,6 +159,22 @@ public class PingTopology extends AbstractTopology<PingTopologyConfig> {
                 .fieldsGrouping(
                         PeriodicResultManager.BOLT_ID, PeriodicResultManager.STREAM_GROUP_ID,
                         new Fields(PeriodicResultManager.FIELD_ID_GROUP_ID));
+    }
+
+    private void statsProducer(TopologyBuilder topology) {
+        StatsProducer bolt = new StatsProducer();
+        topology.setBolt(StatsProducer.BOLT_ID, bolt)
+                .shuffleGrouping(PeriodicResultManager.BOLT_ID, PeriodicResultManager.STREAM_STATS_ID);
+    }
+
+    private void failReporter(TopologyBuilder topology) {
+        FailReporter bolt = new FailReporter(
+                topologyConfig.getFailDelay(), topologyConfig.getFailReset());
+
+        Fields groupBy = new Fields(PeriodicResultManager.FIELD_ID_FLOW_ID);
+        topology.setBolt(FailReporter.BOLT_ID, bolt)
+                .allGrouping(MonotonicTick.BOLT_ID)
+                .fieldsGrouping(PeriodicResultManager.BOLT_ID, PeriodicResultManager.STREAM_FAIL_ID, groupBy);
     }
 
     private void speakerEncoder(TopologyBuilder topology) {

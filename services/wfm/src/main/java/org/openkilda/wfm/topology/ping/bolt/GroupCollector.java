@@ -15,37 +15,31 @@
 
 package org.openkilda.wfm.topology.ping.bolt;
 
-import org.openkilda.messaging.Utils;
-import org.openkilda.messaging.model.FlowDirection;
 import org.openkilda.wfm.error.AbstractException;
-import org.openkilda.wfm.error.PipelineException;
-import org.openkilda.wfm.topology.ping.model.ExpirableMap;
-import org.openkilda.wfm.topology.ping.model.HalfFlowKey;
+import org.openkilda.wfm.error.WorkflowException;
 import org.openkilda.wfm.topology.ping.model.CollectorDescriptor;
+import org.openkilda.wfm.topology.ping.model.ExpirableMap;
+import org.openkilda.wfm.topology.ping.model.Group;
+import org.openkilda.wfm.topology.ping.model.GroupId;
 import org.openkilda.wfm.topology.ping.model.PingContext;
 
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
-import org.openkilda.wfm.topology.ping.model.GroupId;
+import org.apache.storm.tuple.Values;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class GroupCollector extends Abstract {
-    public static final String BOLT_ID = ComponentId.STATS_COUPLER.toString();
+    public static final String BOLT_ID = ComponentId.GROUP_COLLECTOR.toString();
 
-    public static final String FIELD_ID_FLOW_ID = Utils.FLOW_ID;
+    public static final Fields STREAM_FIELDS = new Fields(FIELD_ID_PING_GROUP, FIELD_ID_CONTEXT);
 
-    public static final Fields STREAM_FIELDS = new Fields(
-            FIELD_ID_FLOW_ID, FIELD_ID_PING_GROUP, FIELD_ID_CONTEXT);
+    public static final String STREAM_PERIODIC_ID = "periodic.ping";
 
     private long expireDelay;
 
     private ExpirableMap<GroupId, CollectorDescriptor> cache;
-    private ArrayList<FlowDirection> orderHint;
 
     public GroupCollector(int pingTimeout) {
         expireDelay = TimeUnit.SECONDS.toMillis(pingTimeout * 2);
@@ -56,10 +50,6 @@ public class GroupCollector extends Abstract {
         super.init();
 
         cache = new ExpirableMap<>();
-
-        orderHint = new ArrayList<>(2);
-        orderHint.add(FlowDirection.FORWARD);
-        orderHint.add(FlowDirection.REVERSE);
     }
 
     @Override
@@ -68,7 +58,7 @@ public class GroupCollector extends Abstract {
         if (MonotonicTick.BOLT_ID.equals(component)) {
             expire(input);
         } else if (PeriodicResultManager.BOLT_ID.equals(component)) {
-            coupling(input);
+            collect(input);
         } else {
             unhandledInput(input);
         }
@@ -79,64 +69,51 @@ public class GroupCollector extends Abstract {
         cache.expire(now);
     }
 
-    private void coupling(Tuple input) throws PipelineException {
-        PingContext pingContext = pullPingContext(input);
-        PingContext oppositePingContext = lookupOppositePing(pingContext);
-
-        cacheUpdate(pingContext);
-
-        ArrayList<Object> output = new ArrayList<>();
-        output.add(pingContext.getFlowId());
-        output.addAll(orderByDirection(pingContext, oppositePingContext));
-        output.add(pullContext(input));
-
-        getOutput().emit(input, output);
-    }
-
-    private PingContext lookupOppositePing(PingContext current) {
-        HalfFlowKey key = new HalfFlowKey(current.getFlowId(), getOppositeDirection(current.getDirection()));
-        CollectorDescriptor descriptor = cache.get(key);
-        if (descriptor != null) {
-            return descriptor.getPingContext();
+    private void collect(Tuple input) throws AbstractException {
+        CollectorDescriptor descriptor = saveCurrentRecord(input);
+        if (descriptor.isCompleted()) {
+            Group group = descriptor.makeGroup();
+            emitGroup(input, group);
         }
-        return null;
     }
 
-    private void cacheUpdate(PingContext current) {
+    private CollectorDescriptor saveCurrentRecord(Tuple input) throws AbstractException {
+        final PingContext pingContext = pullPingContext(input);
+
         long expireAt = System.currentTimeMillis() + expireDelay;
-        CollectorDescriptor descriptor = new CollectorDescriptor(expireAt, current);
-        cache.remove(descriptor.getExpirableKey());
-        cache.add(descriptor);
-    }
+        CollectorDescriptor descriptor = new CollectorDescriptor(expireAt, pingContext.getGroup());
+        descriptor = cache.addIfAbsent(descriptor);
 
-    private FlowDirection getOppositeDirection(FlowDirection current) {
-        FlowDirection opposite;
-        switch (current) {
-            case FORWARD:
-                opposite = FlowDirection.REVERSE;
-                break;
-            case REVERSE:
-                opposite = FlowDirection.FORWARD;
-                break;
-            default:
-                throw new IllegalArgumentException(String.format(
-                        "Can\'t determine opposite direction for %s.%s", current.getClass().getName(), current));
-        }
-        return opposite;
-    }
-
-    private List<PingContext> orderByDirection(PingContext current, PingContext opposite) {
-        PingContext[] result = new PingContext[] {null, null};
-        result[orderHint.indexOf(current.getDirection())] = current;
-        if (opposite != null) {
-            result[orderHint.indexOf(opposite.getDirection())] = opposite;
+        try {
+            descriptor.add(pingContext);
+        } catch (IllegalArgumentException e) {
+            throw new WorkflowException(this, input, e.toString());
         }
 
-        return Arrays.asList(result);
+        return descriptor;
+    }
+
+    private void emitGroup(Tuple input, Group group) throws AbstractException {
+        String stream = routeBack(input);
+        Values output = new Values(group, pullContext(input));
+        getOutput().emit(stream, input, output);
+    }
+
+    private String routeBack(Tuple input) throws WorkflowException {
+        String component = input.getSourceComponent();
+        String stream;
+        if (PeriodicResultManager.BOLT_ID.equals(component)) {
+            stream = STREAM_PERIODIC_ID;
+        } else {
+            final String details = String.format(
+                    "there is no route back from %s to %s", getClass().getCanonicalName(), component);
+            throw new WorkflowException(this, input, details);
+        }
+        return stream;
     }
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer outputManager) {
-        outputManager.declare(STREAM_FIELDS);
+        outputManager.declareStream(STREAM_PERIODIC_ID, STREAM_FIELDS);
     }
 }

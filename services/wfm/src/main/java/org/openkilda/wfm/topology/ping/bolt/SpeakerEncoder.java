@@ -48,13 +48,7 @@ public class SpeakerEncoder extends Abstract {
     }
 
     private CommandData pullPayload(Tuple input) throws PipelineException {
-        CommandData value;
-        try {
-            value = (CommandData) input.getValueByField(FIELD_ID_PAYLOAD);
-        } catch (ClassCastException e) {
-            throw new PipelineException(this, input, FIELD_ID_PAYLOAD, e.toString());
-        }
-        return value;
+        return pullValue(input, FIELD_ID_PAYLOAD, CommandData.class);
     }
 
     private CommandMessage wrap(CommandContext commandContext, CommandData payload) {

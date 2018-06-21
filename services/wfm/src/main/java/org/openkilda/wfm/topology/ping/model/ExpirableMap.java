@@ -36,6 +36,17 @@ public class ExpirableMap<K, V extends Expirable<K>> {
         put(value.getExpirableKey(), value);
     }
 
+    public V addIfAbsent(V value) {
+        K key = value.getExpirableKey();
+        V current = map.putIfAbsent(key, value);
+        if (current == null) {
+            current = value;
+            queue.addLast(value);
+        }
+
+        return current;
+    }
+
     public V remove(K key) {
         V value = map.remove(key);
         if (value != null) {

@@ -24,8 +24,15 @@ import org.apache.storm.tuple.Tuple;
 public abstract class ResultManager extends Abstract {
     @Override
     protected void handleInput(Tuple input) throws AbstractException {
-        handle(input, pullPingContext(input));
+        String component = input.getSourceComponent();
+        if (GroupCollector.BOLT_ID.equals(component)) {
+            handleGroup(input);
+        } else {
+            handle(input, pullPingContext(input));
+        }
     }
+
+    protected void handleGroup(Tuple input) throws PipelineException {}
 
     protected void handle(Tuple input, PingContext pingContext) throws AbstractException {
         if (pingContext.isError()) {
