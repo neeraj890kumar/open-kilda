@@ -1,15 +1,8 @@
 package org.openkilda.wfm.topology.stats;
 
+import org.openkilda.messaging.model.FlowDirection;
+
 public class FlowDirectionHelper {
-
-
-    public enum Direction
-    {
-        UNKNOWN,
-        FORWARD,
-        REVERSE
-    }
-
 
     /**
      * Trys to determine the direction of the flow based on the cookie.
@@ -17,7 +10,7 @@ public class FlowDirectionHelper {
      * @param cookie
      * @return
      */
-    static public Direction findDirection(long cookie) throws FlowCookieException {
+    static public FlowDirection findDirection(long cookie) throws FlowCookieException {
         // Kilda flow first number represents direction with 4 = forward and 2 = reverse
         // Legacy flow Cookies 0x10400000005d803 is first switch in forward direction
         //                     0x18400000005d803 is first switch in reverse direction
@@ -25,7 +18,7 @@ public class FlowDirectionHelper {
         // second number represents forward/reverse
         // third number no idea
         // rest is the same for the flow
-        Direction direction = Direction.UNKNOWN;
+        FlowDirection direction;
         try {
             direction = getLegacyDirection(cookie);
         } catch (FlowCookieException e) {
@@ -53,7 +46,7 @@ public class FlowDirectionHelper {
         return ((flowType == 2) || (flowType == 4) || (flowType == 8)) && nibbles == 0;
     }
 
-    static public Direction getKildaDirection(long cookie) throws FlowCookieException {
+    static public FlowDirection getKildaDirection(long cookie) throws FlowCookieException {
         // high order nibble represents type of flow with a 2 representing a forward flow
         // and a 4 representing the reverse flow
         if (!isKildaCookie(cookie)) {
@@ -63,10 +56,10 @@ public class FlowDirectionHelper {
         if ((direction != 2) && (direction != 4)) {
             throw new FlowCookieException("unknown direction for " + cookie);
         }
-        return direction == 4 ? Direction.FORWARD : Direction.REVERSE;
+        return direction == 4 ? FlowDirection.FORWARD : FlowDirection.REVERSE;
     }
 
-    static public Direction getLegacyDirection(long cookie) throws FlowCookieException {
+    static public FlowDirection getLegacyDirection(long cookie) throws FlowCookieException {
         // Direction is the 3rd nibble from the top
         // If nibble is 0 it is forward and 8 is reverse
         if (!isLegacyCookie(cookie)) {
@@ -76,7 +69,6 @@ public class FlowDirectionHelper {
         if ((direction != 0) && (direction != 8)) {
             throw new FlowCookieException("unknown direction for " + cookie);
         }
-        return direction == 0 ? Direction.FORWARD : Direction.REVERSE;
+        return direction == 0 ? FlowDirection.FORWARD : FlowDirection.REVERSE;
     }
-
 }

@@ -7,7 +7,8 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.openkilda.wfm.topology.stats.FlowDirectionHelper.Direction;
+
+import org.openkilda.messaging.model.FlowDirection;
 
 import java.util.Map;
 
@@ -49,8 +50,8 @@ public class FlowDirectionHelperTest {
 
     @Test
     public void getKildaDirectionTest() throws Exception {
-        assertEquals(Direction.FORWARD, FlowDirectionHelper.getKildaDirection(FORWARD_COOKIE));
-        assertEquals(Direction.REVERSE, FlowDirectionHelper.getKildaDirection(REVERSE_COOKIE));
+        assertEquals(FlowDirection.FORWARD, FlowDirectionHelper.getKildaDirection(FORWARD_COOKIE));
+        assertEquals(FlowDirection.REVERSE, FlowDirectionHelper.getKildaDirection(REVERSE_COOKIE));
 
         thrown.expect(Exception.class);
         thrown.expectMessage(LEGACY_FORWARD_COOKIE + " is not a Kilda flow");
@@ -59,8 +60,8 @@ public class FlowDirectionHelperTest {
 
     @Test
     public void getLegacyDirectionTest() throws Exception {
-        assertEquals(Direction.FORWARD, FlowDirectionHelper.getLegacyDirection(LEGACY_FORWARD_COOKIE));
-        assertEquals(Direction.REVERSE, FlowDirectionHelper.getLegacyDirection(LEGACY_REVERSE_COOKIE));
+        assertEquals(FlowDirection.FORWARD, FlowDirectionHelper.getLegacyDirection(LEGACY_FORWARD_COOKIE));
+        assertEquals(FlowDirection.REVERSE, FlowDirectionHelper.getLegacyDirection(LEGACY_REVERSE_COOKIE));
 
         thrown.expect(Exception.class);
         thrown.expectMessage(FORWARD_COOKIE +  " is not a legacy flow");
@@ -69,8 +70,8 @@ public class FlowDirectionHelperTest {
 
     @Test
     public void findDirectionTest() throws Exception {
-        assertEquals(Direction.FORWARD, FlowDirectionHelper.findDirection(LEGACY_FORWARD_COOKIE));
-        assertEquals(Direction.REVERSE, FlowDirectionHelper.findDirection(REVERSE_COOKIE));
+        assertEquals(FlowDirection.FORWARD, FlowDirectionHelper.findDirection(LEGACY_FORWARD_COOKIE));
+        assertEquals(FlowDirection.REVERSE, FlowDirectionHelper.findDirection(REVERSE_COOKIE));
 
         thrown.expect(Exception.class);
         thrown.expectMessage(BAD_COOKIE + " is not a Kilda flow");
