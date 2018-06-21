@@ -16,13 +16,18 @@
 package org.openkilda.wfm.topology.ping.bolt;
 
 import org.openkilda.wfm.error.AbstractException;
+import org.openkilda.wfm.topology.ping.model.FlowObserver;
+import org.openkilda.wfm.topology.ping.model.FlowObserversPool;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 
+import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
+@Slf4j
 public class FailReporter extends Abstract {
     public static final String BOLT_ID = ComponentId.FAIL_REPORTER.toString();
 
@@ -32,6 +37,7 @@ public class FailReporter extends Abstract {
 
     private final long failDelay;
     private final long failReset;
+    private FlowObserversPool cache;
 
     public FailReporter(int failDelay, int failReset) {
         this.failDelay = TimeUnit.SECONDS.toMillis(failDelay);
@@ -39,8 +45,54 @@ public class FailReporter extends Abstract {
     }
 
     @Override
-    protected void handleInput(Tuple input) throws AbstractException {
+    protected void init() {
+        super.init();
 
+        FlowObserver.FlowObserverBuilder builder = FlowObserver.builder()
+                .failDelay(failDelay)
+                .failReset(failReset);
+        cache = new FlowObserversPool(builder);
+    }
+
+    @Override
+    protected void handleInput(Tuple input) throws AbstractException {
+        String component = input.getSourceComponent();
+
+        if (MonotonicTick.BOLT_ID.equals(component)) {
+            handleTick(input);
+        // TODO
+        } else {
+            unhandledInput(input);
+        }
+    }
+
+    private void handleTick(Tuple input) {
+        final long now = input.getLongByField(MonotonicTick.FIELD_ID_TIME_MILLIS);
+        ArrayList<String> failFlows = new ArrayList<>();
+
+        for (FlowObserversPool.Entry entry : cache.getAll()) {
+            FlowObserver flowObserver = entry.flowObserver;
+
+            flowObserver.timeTick(now);
+            if (flowObserver.isFail()) {
+                failFlows.add(entry.flowId);
+            }
+        }
+
+        for (String flowId : failFlows) {
+            report(input, flowId, now);
+        }
+    }
+
+    private void report(Tuple intput, String flowId, long now) {
+        for (FlowObserver observer : cache.get(flowId)) {
+            if (observer.isFail()) {
+                observer.markReported(now);
+            }
+        }
+
+        log.info("Flow {} is marked as FAILED due to ping check results", flowId);
+        // TODO make sync record
     }
 
     @Override

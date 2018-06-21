@@ -18,10 +18,11 @@ package org.openkilda.wfm.topology.ping.model;
 import org.openkilda.wfm.topology.ping.model.FlowObserver.FlowObserverBuilder;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map.Entry;
+import java.util.Map;
 
 public class FlowObserversPool {
     private final FlowObserver.FlowObserverBuilder builder;
@@ -32,28 +33,32 @@ public class FlowObserversPool {
         this.builder = builder;
     }
 
+    public Collection<FlowObserver> get(String flowId) {
+        return getBatch(flowId).values();
+    }
+
     public FlowObserver get(String flowId, long cookie) {
         Batch batch = getBatch(flowId);
         return batch.computeIfAbsent(cookie, k -> builder.build());
     }
 
-    public List<FlowObserver> getAll() {
-        ArrayList<FlowObserver> all = new ArrayList<>();
+    public List<Entry> getAll() {
+        ArrayList<Entry> all = new ArrayList<>();
         ArrayList<String> empty = new ArrayList<>();
 
         for (String flowId : pool.keySet()) {
             boolean isEmpty = true;
-            Iterator<Entry<Long, FlowObserver>> iter;
+            Iterator<Map.Entry<Long, FlowObserver>> iter;
             Batch batch = pool.get(flowId);
             for (iter = batch.entrySet().iterator(); iter.hasNext(); ) {
-                Entry<Long, FlowObserver> entry = iter.next();
+                Map.Entry<Long, FlowObserver> entry = iter.next();
                 if (entry.getValue().isGarbage()) {
                     iter.remove();
                     continue;
                 }
 
                 isEmpty = false;
-                all.add(entry.getValue());
+                all.add(new Entry(flowId, entry.getValue()));
             }
 
             if (isEmpty) {
@@ -80,4 +85,14 @@ public class FlowObserversPool {
     }
 
     private static class Batch extends HashMap<Long, FlowObserver> {}
+
+    public static class Entry {
+        public final String flowId;
+        public final FlowObserver flowObserver;
+
+        private Entry(String flowId, FlowObserver flowObserver) {
+            this.flowId = flowId;
+            this.flowObserver = flowObserver;
+        }
+    }
 }

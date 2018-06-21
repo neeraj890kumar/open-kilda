@@ -42,12 +42,12 @@ public class FlowObserver {
         dispatch(Event.STATE_FAIL, timestamp);
     }
 
-    public void timeTick(long timestamp) {
-        dispatch(Event.TIME, timestamp);
+    public void markReported(long timestamp) {
+        dispatch(Event.STATE_REPORTED, timestamp);
     }
 
-    public boolean isOperational() {
-        return state == State.OPERATIONAL;
+    public void timeTick(long timestamp) {
+        dispatch(Event.TIME, timestamp);
     }
 
     public boolean isFail() {
@@ -71,6 +71,7 @@ public class FlowObserver {
                 dispatchPreFail(event, timestamp);
                 break;
             case FAIL:
+            case FAIL_REPORTED:
                 dispatchFail(event, timestamp);
                 break;
 
@@ -132,20 +133,28 @@ public class FlowObserver {
             case STATE_OPERATIONAL:
                 stateTransition(State.OPERATIONAL, timestamp);
                 break;
+            case STATE_REPORTED:
+                stateTransition(State.FAIL_REPORTED);
+                break;
 
             default:
         }
     }
 
     private void stateTransition(State target, long timetamp) {
-        this.state = target;
+        stateTransition(target);
         this.lastStateTransitionAt = timetamp;
+    }
+
+    private void stateTransition(State target) {
+        this.state = target;
     }
 
     private enum Event {
         TIME,
         STATE_OPERATIONAL,
-        STATE_FAIL
+        STATE_FAIL,
+        STATE_REPORTED
     }
 
     private enum State {
@@ -153,6 +162,7 @@ public class FlowObserver {
         OPERATIONAL,
         PRE_FAIL,
         FAIL,
+        FAIL_REPORTED,
         GARBAGE
     }
 }
