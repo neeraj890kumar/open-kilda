@@ -14,7 +14,7 @@ participant Blacklist
 participant TimeoutManager
 participant ResultDispatcher
 participant PeriodicResultManager
-participant StatsCoupler
+participant GroupCollector
 participant StatsProducer
 participant FailReporter
 participant SpeakerEncoder
@@ -116,17 +116,18 @@ alt normal workflow
     end
     PeriodicResultManager -> FailReporter: PingContext\n(flowId grouping)
     note right of FailReporter: update flow status
-    PeriodicResultManager -> StatsCoupler: PingContest\n(flowId grouping)
+    PeriodicResultManager -> GroupCollector: PingContext\n(flowId grouping)
 
-    activate StatsCoupler
-    StatsCoupler -> StatsProducer: PingContext\n(flowId grouping)
-    deactivate StatsCoupler
+    activate GroupCollector
+    GroupCollector -> PeriodicResultManager: Group
+    deactivate GroupCollector
+
+    PeriodicResultManager -> StatsProducer: Group
+    deactivate PeriodicResultManager
 
     activate StatsProducer
     StatsProducer -> kilda.stats: flow ping stats
     deactivate StatsProducer
-
-    deactivate PeriodicResultManager
 
 else timeout
     Time -> TimeoutManager: X monotonic tick
