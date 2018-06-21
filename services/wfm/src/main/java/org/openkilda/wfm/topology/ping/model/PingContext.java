@@ -35,7 +35,8 @@ public class PingContext implements Serializable {
     }
 
     private Kinds kind;
-    private UUID pingCoupleId;
+    private GroupId group;
+
     private BidirectionalFlow flow;
     private FlowDirection direction;
 
@@ -47,7 +48,6 @@ public class PingContext implements Serializable {
     public PingContext(Kinds kind, BidirectionalFlow flow) {
         this.kind = kind;
         this.flow = flow;
-        this.pingCoupleId = UUID.randomUUID();
     }
 
     public String getFlowId() {

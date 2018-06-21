@@ -75,6 +75,16 @@ public abstract class AbstractBolt extends BaseRichBolt {
         return value;
     }
 
+    protected <T> T pullValue(Tuple input, String field, Class<T> klass) throws PipelineException {
+        T value;
+        try {
+            value = klass.cast(input.getValueByField(field));
+        } catch (ClassCastException e) {
+            throw new PipelineException(this, input, field, e.toString());
+        }
+        return value;
+    }
+
     protected OutputCollector getOutput() {
         return output;
     }

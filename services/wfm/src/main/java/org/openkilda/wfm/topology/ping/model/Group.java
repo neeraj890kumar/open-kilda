@@ -15,12 +15,18 @@
 
 package org.openkilda.wfm.topology.ping.model;
 
-import org.openkilda.messaging.model.FlowDirection;
-
 import lombok.Value;
+import org.parboiled.common.ImmutableList;
+
+import java.util.List;
 
 @Value
-public class HalfFlowKey {
-    private String flowId;
-    private FlowDirection direction;
+public class Group {
+    private GroupId id;
+    private List<PingContext> records;
+
+    public Group(GroupId id, List<PingContext> records) {
+        this.id = id;
+        this.records = ImmutableList.copyOf(records);
+    }
 }

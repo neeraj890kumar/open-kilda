@@ -28,12 +28,13 @@ import org.apache.storm.tuple.Values;
 public class PeriodicResultManager extends ResultManager {
     public static final String BOLT_ID = ComponentId.PERIODIC_RESULT_MANAGER.toString();
 
+    public static final String FIELD_ID_GROUP_ID = "ping_group";
     public static final String FIELD_ID_FLOW_ID = Utils.FLOW_ID;
 
-    public static final Fields STREAM_STATS_FIELDS = new Fields(FIELD_ID_FLOW_ID, FIELD_ID_PING, FIELD_ID_CONTEXT);
-    public static final String STREAM_STATS_ID = "stats";
+    public static final Fields STREAM_GROUP_FIELDS = new Fields(FIELD_ID_GROUP_ID, FIELD_ID_PING, FIELD_ID_CONTEXT);
+    public static final String STREAM_GROUP_ID = "stats";
 
-    public static final Fields STREAM_FAIL_FIELDS = STREAM_STATS_FIELDS;
+    public static final Fields STREAM_FAIL_FIELDS = new Fields(FIELD_ID_FLOW_ID, FIELD_ID_PING, FIELD_ID_CONTEXT);
     public static final String STREAM_FAIL_ID = "fail";
 
     private static final Fields STREAM_BLACKLIST_FIELDS = new Fields(FIELD_ID_PING, FIELD_ID_CONTEXT);
@@ -56,8 +57,8 @@ public class PeriodicResultManager extends ResultManager {
     }
 
     private void updateStats(Tuple input, PingContext pingContext) throws PipelineException {
-        Values output = new Values(pingContext.getFlowId(), pingContext, pullContext(input));
-        getOutput().emit(STREAM_STATS_ID, input, output);
+        Values output = new Values(pingContext.getGroup(), pingContext, pullContext(input));
+        getOutput().emit(STREAM_GROUP_ID, input, output);
     }
 
     private void updateFailReporter(Tuple input, PingContext pingContext) throws PipelineException {
@@ -67,7 +68,7 @@ public class PeriodicResultManager extends ResultManager {
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer outputManager) {
-        outputManager.declareStream(STREAM_STATS_ID, STREAM_STATS_FIELDS);
+        outputManager.declareStream(STREAM_GROUP_ID, STREAM_GROUP_FIELDS);
         outputManager.declareStream(STREAM_FAIL_ID, STREAM_FAIL_FIELDS);
         outputManager.declareStream(STREAM_BLACKLIST_ID, STREAM_BLACKLIST_FIELDS);
     }

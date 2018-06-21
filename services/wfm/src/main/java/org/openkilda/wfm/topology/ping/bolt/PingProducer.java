@@ -28,6 +28,7 @@ import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
+import org.openkilda.wfm.topology.ping.model.GroupId;
 
 public class PingProducer extends Abstract {
     public static final String BOLT_ID = ComponentId.PING_PRODUCER.toString();
@@ -39,15 +40,20 @@ public class PingProducer extends Abstract {
         PingContext pingContext = pullPingContext(input);
 
         // TODO(surabujin): add one switch flow filter
-        emit(input, produce(pingContext, FlowDirection.FORWARD));
-        emit(input, produce(pingContext, FlowDirection.REVERSE));
+        GroupId group = new GroupId(2);
+        emit(input, produce(pingContext, group, FlowDirection.FORWARD));
+        emit(input, produce(pingContext, group, FlowDirection.REVERSE));
     }
 
-    private PingContext produce(PingContext pingContext, FlowDirection direction) {
+    private PingContext produce(PingContext pingContext, GroupId group, FlowDirection direction) {
         Flow flow = getUnidirectionalFlow(pingContext.getFlow(), direction);
         Ping ping = new Ping(flow);
 
-        return pingContext.toBuilder().ping(ping).build();
+        return pingContext.toBuilder()
+                .ping(ping)
+                .direction(direction)
+                .group(group)
+                .build();
     }
 
     private void emit(Tuple input, PingContext pingContext) throws PipelineException {

@@ -21,35 +21,34 @@ import org.openkilda.wfm.error.AbstractException;
 import org.openkilda.wfm.error.PipelineException;
 import org.openkilda.wfm.topology.ping.model.ExpirableMap;
 import org.openkilda.wfm.topology.ping.model.HalfFlowKey;
-import org.openkilda.wfm.topology.ping.model.HalfFlowPingDescriptor;
+import org.openkilda.wfm.topology.ping.model.CollectorDescriptor;
 import org.openkilda.wfm.topology.ping.model.PingContext;
 
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
+import org.openkilda.wfm.topology.ping.model.GroupId;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-public class StatsCoupler extends Abstract {
+public class GroupCollector extends Abstract {
     public static final String BOLT_ID = ComponentId.STATS_COUPLER.toString();
 
     public static final String FIELD_ID_FLOW_ID = Utils.FLOW_ID;
-    public static final String FIELD_ID_PING_FORWARD = "ping.forward";
-    public static final String FIELD_ID_PING_REVERSE = "ping.reverse";
 
     public static final Fields STREAM_FIELDS = new Fields(
-            FIELD_ID_FLOW_ID, FIELD_ID_PING_FORWARD, FIELD_ID_PING_REVERSE, FIELD_ID_CONTEXT);
+            FIELD_ID_FLOW_ID, FIELD_ID_PING_GROUP, FIELD_ID_CONTEXT);
 
-    private long interval;
+    private long expireDelay;
 
-    private ExpirableMap<HalfFlowKey, HalfFlowPingDescriptor> cache;
+    private ExpirableMap<GroupId, CollectorDescriptor> cache;
     private ArrayList<FlowDirection> orderHint;
 
-    public StatsCoupler(int pingInterval) {
-        interval = TimeUnit.SECONDS.toMillis(pingInterval);
+    public GroupCollector(int pingTimeout) {
+        expireDelay = TimeUnit.SECONDS.toMillis(pingTimeout * 2);
     }
 
     @Override
@@ -96,7 +95,7 @@ public class StatsCoupler extends Abstract {
 
     private PingContext lookupOppositePing(PingContext current) {
         HalfFlowKey key = new HalfFlowKey(current.getFlowId(), getOppositeDirection(current.getDirection()));
-        HalfFlowPingDescriptor descriptor = cache.get(key);
+        CollectorDescriptor descriptor = cache.get(key);
         if (descriptor != null) {
             return descriptor.getPingContext();
         }
@@ -104,8 +103,8 @@ public class StatsCoupler extends Abstract {
     }
 
     private void cacheUpdate(PingContext current) {
-        long expireAt = System.currentTimeMillis() + interval;
-        HalfFlowPingDescriptor descriptor = new HalfFlowPingDescriptor(expireAt, current);
+        long expireAt = System.currentTimeMillis() + expireDelay;
+        CollectorDescriptor descriptor = new CollectorDescriptor(expireAt, current);
         cache.remove(descriptor.getExpirableKey());
         cache.add(descriptor);
     }

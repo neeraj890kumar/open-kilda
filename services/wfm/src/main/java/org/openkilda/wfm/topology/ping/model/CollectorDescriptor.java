@@ -17,18 +17,21 @@ package org.openkilda.wfm.topology.ping.model;
 
 import lombok.Data;
 
-@Data
-public class HalfFlowPingDescriptor extends Expirable<HalfFlowKey> {
-    private final PingContext pingContext;
+import java.util.ArrayList;
+import java.util.List;
 
-    public HalfFlowPingDescriptor(long expireAt, PingContext pingContext) {
+@Data
+public class CollectorDescriptor extends Expirable<GroupId> {
+    private final GroupId group;
+    private final List<PingContext> records = new ArrayList<>();
+
+    public CollectorDescriptor(long expireAt, GroupId group) {
         super(expireAt);
-        this.pingContext = pingContext;
+        this.group = group;
     }
 
     @Override
-    public HalfFlowKey getExpirableKey() {
-        final PingContext pingContext = getPingContext();
-        return new HalfFlowKey(pingContext.getFlowId(), pingContext.getDirection());
+    public GroupId getExpirableKey() {
+        return getGroup();
     }
 }

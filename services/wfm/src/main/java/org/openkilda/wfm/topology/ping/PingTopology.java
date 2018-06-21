@@ -32,7 +32,7 @@ import org.openkilda.wfm.topology.ping.bolt.PingRouter;
 import org.openkilda.wfm.topology.ping.bolt.ResultDispatcher;
 import org.openkilda.wfm.topology.ping.bolt.SpeakerDecoder;
 import org.openkilda.wfm.topology.ping.bolt.SpeakerEncoder;
-import org.openkilda.wfm.topology.ping.bolt.StatsCoupler;
+import org.openkilda.wfm.topology.ping.bolt.GroupCollector;
 import org.openkilda.wfm.topology.ping.bolt.TimeoutManager;
 
 import org.apache.storm.generated.StormTopology;
@@ -65,7 +65,7 @@ public class PingTopology extends AbstractTopology<PingTopologyConfig> {
         resultDispatcher(topology);
         periodicResultManager(topology);
         manualResultManager(topology);
-        statsCoupler(topology);
+        groupCollector(topology);
 
         speakerEncoder(topology);
         speakerDecoder(topology);
@@ -147,13 +147,13 @@ public class PingTopology extends AbstractTopology<PingTopologyConfig> {
                 .shuffleGrouping(ResultDispatcher.BOLT_ID, ResultDispatcher.STREAM_MANUAL_ID);
     }
 
-    private void statsCoupler(TopologyBuilder topology) {
-        StatsCoupler bolt = new StatsCoupler(topologyConfig.getPingInterval());
-        topology.setBolt(StatsCoupler.BOLT_ID, bolt)
+    private void groupCollector(TopologyBuilder topology) {
+        GroupCollector bolt = new GroupCollector(topologyConfig.getTimeout());
+        topology.setBolt(GroupCollector.BOLT_ID, bolt)
                 .allGrouping(MonotonicTick.BOLT_ID)
                 .fieldsGrouping(
-                        PeriodicResultManager.BOLT_ID, PeriodicResultManager.STREAM_STATS_ID,
-                        new Fields(PeriodicResultManager.FIELD_ID_FLOW_ID));
+                        PeriodicResultManager.BOLT_ID, PeriodicResultManager.STREAM_GROUP_ID,
+                        new Fields(PeriodicResultManager.FIELD_ID_GROUP_ID));
     }
 
     private void speakerEncoder(TopologyBuilder topology) {
