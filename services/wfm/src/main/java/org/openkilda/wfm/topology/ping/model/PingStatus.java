@@ -19,7 +19,7 @@ import lombok.Builder;
 import lombok.Data;
 
 @Data
-public class FlowObserver {
+public class PingStatus {
     private final long failDelay;
     private final long failReset;
     private final long garbageDelay;
@@ -28,7 +28,7 @@ public class FlowObserver {
     private long lastStateTransitionAt = 0L;
 
     @Builder
-    public FlowObserver(long failDelay, long failReset) {
+    public PingStatus(long failDelay, long failReset) {
         this.failDelay = failDelay;
         this.failReset = failReset;
         this.garbageDelay = failReset;
@@ -40,10 +40,6 @@ public class FlowObserver {
 
     public void markFailed(long timestamp) {
         dispatch(Event.STATE_FAIL, timestamp);
-    }
-
-    public void markReported(long timestamp) {
-        dispatch(Event.STATE_REPORTED, timestamp);
     }
 
     public void timeTick(long timestamp) {
@@ -71,7 +67,6 @@ public class FlowObserver {
                 dispatchPreFail(event, timestamp);
                 break;
             case FAIL:
-            case FAIL_REPORTED:
                 dispatchFail(event, timestamp);
                 break;
 
@@ -133,9 +128,6 @@ public class FlowObserver {
             case STATE_OPERATIONAL:
                 stateTransition(State.OPERATIONAL, timestamp);
                 break;
-            case STATE_REPORTED:
-                stateTransition(State.FAIL_REPORTED);
-                break;
 
             default:
         }
@@ -162,7 +154,6 @@ public class FlowObserver {
         OPERATIONAL,
         PRE_FAIL,
         FAIL,
-        FAIL_REPORTED,
         GARBAGE
     }
 }

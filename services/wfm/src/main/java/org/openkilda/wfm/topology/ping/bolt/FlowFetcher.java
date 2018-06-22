@@ -23,6 +23,8 @@ import org.openkilda.wfm.CommandContext;
 import org.openkilda.wfm.error.AbstractException;
 import org.openkilda.wfm.error.PipelineException;
 import org.openkilda.wfm.share.utils.PathComputerFlowFetcher;
+import org.openkilda.wfm.topology.ping.model.FlowRef;
+import org.openkilda.wfm.topology.ping.model.FlowsHeap;
 import org.openkilda.wfm.topology.ping.model.PingContext;
 import org.openkilda.wfm.topology.ping.model.PingContext.Kinds;
 
@@ -36,10 +38,16 @@ public class FlowFetcher extends Abstract {
     public static final String BOLT_ID = ComponentId.FLOW_FETCHER.toString();
 
     public static final String FIELD_ID_FLOW_ID = Utils.FLOW_ID;
+    public static final String FIELD_FLOW_REF = "flow_ref";
+
     public static final Fields STREAM_FIELDS = new Fields(FIELD_ID_FLOW_ID, FIELD_ID_PING, FIELD_ID_CONTEXT);
+
+    public static final Fields STREAM_EXPIRE_CACHE_FIELDS = new Fields(FIELD_FLOW_REF, FIELD_ID_CONTEXT);
+    public static final String STREAM_EXPIRE_CACHE_ID = "expire_cache";
 
     private final PathComputerAuth pathComputerAuth;
     private PathComputer pathComputer = null;
+    private FlowsHeap flowsHeap;
 
     public FlowFetcher(PathComputerAuth pathComputerAuth) {
         this.pathComputerAuth = pathComputerAuth;
@@ -61,20 +69,36 @@ public class FlowFetcher extends Abstract {
 
         final CommandContext commandContext = pullContext(input);
         final OutputCollector collector = getOutput();
+        final FlowsHeap heap = new FlowsHeap();
         for (BidirectionalFlow flow : fetcher.getFlows()) {
             PingContext pingContext = new PingContext(Kinds.PERIODIC, flow);
             Values output = new Values(pingContext.getFlowId(), pingContext, commandContext);
             collector.emit(input, output);
+
+            heap.add(flow);
+        }
+
+        emitCacheExpire(input, commandContext, heap);
+        flowsHeap = heap;
+    }
+
+    private void emitCacheExpire(Tuple input, CommandContext commandContext, FlowsHeap heap) {
+        OutputCollector collector = getOutput();
+        for (FlowRef ref : flowsHeap.extra(heap)) {
+            Values output = new Values(ref, commandContext);
+            collector.emit(STREAM_EXPIRE_CACHE_ID, input, output);
         }
     }
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer outputManager) {
         outputManager.declare(STREAM_FIELDS);
+        outputManager.declareStream(STREAM_EXPIRE_CACHE_ID, STREAM_EXPIRE_CACHE_FIELDS);
     }
 
     @Override
     public void init() {
         pathComputer = pathComputerAuth.getPathComputer();
+        flowsHeap = new FlowsHeap();
     }
 }

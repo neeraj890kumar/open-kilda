@@ -52,8 +52,6 @@ public class PingTopology extends AbstractTopology<PingTopologyConfig> {
     public StormTopology createTopology() throws NameCollisionException {
         TopologyBuilder topology = new TopologyBuilder();
 
-        // TODO: cancel error reporting for removed flows
-
         monotonicTick(topology);
 
         speakerInput(topology);
@@ -174,6 +172,7 @@ public class PingTopology extends AbstractTopology<PingTopologyConfig> {
         Fields groupBy = new Fields(PeriodicResultManager.FIELD_ID_FLOW_ID);
         topology.setBolt(FailReporter.BOLT_ID, bolt)
                 .allGrouping(MonotonicTick.BOLT_ID)
+                .allGrouping(FlowFetcher.BOLT_ID, FlowFetcher.STREAM_EXPIRE_CACHE_ID)
                 .fieldsGrouping(PeriodicResultManager.BOLT_ID, PeriodicResultManager.STREAM_FAIL_ID, groupBy);
     }
 

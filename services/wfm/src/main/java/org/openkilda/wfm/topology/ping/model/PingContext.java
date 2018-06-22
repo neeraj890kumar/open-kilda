@@ -83,6 +83,21 @@ public class PingContext implements Serializable {
         return result;
     }
 
+    public long getCookie() {
+        long value;
+        if (direction == null) {
+            value = flow.getCookie();
+        } else if (direction == FlowDirection.FORWARD) {
+            value = flow.getForward().getCookie();
+        } else if (direction == FlowDirection.REVERSE) {
+            value = flow.getReverse().getCookie();
+        } else {
+            throw new IllegalArgumentException(String.format(
+                    "Unsupported %s.%s value", FlowDirection.class.getName(), direction));
+        }
+        return value;
+    }
+
     @Override
     public String toString() {
         return String.format(

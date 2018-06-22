@@ -15,17 +15,25 @@
 
 package org.openkilda.wfm.topology.ping.bolt;
 
+import org.openkilda.messaging.model.PingReport;
 import org.openkilda.wfm.error.AbstractException;
-import org.openkilda.wfm.topology.ping.model.FlowObserver;
-import org.openkilda.wfm.topology.ping.model.FlowObserversPool;
+import org.openkilda.wfm.error.PipelineException;
+import org.openkilda.wfm.topology.ping.model.FlowRef;
+import org.openkilda.wfm.topology.ping.model.FlowStatus;
+import org.openkilda.wfm.topology.ping.model.PingContext;
+import org.openkilda.wfm.topology.ping.model.PingStatus;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
+import org.apache.storm.tuple.Values;
 
-import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class FailReporter extends Abstract {
@@ -37,7 +45,8 @@ public class FailReporter extends Abstract {
 
     private final long failDelay;
     private final long failReset;
-    private FlowObserversPool cache;
+    private HashMap<String, FlowStatus> flowsStatusMap;
+    private PingStatus.PingStatusBuilder pingStatusBuilder;
 
     public FailReporter(int failDelay, int failReset) {
         this.failDelay = TimeUnit.SECONDS.toMillis(failDelay);
@@ -48,10 +57,10 @@ public class FailReporter extends Abstract {
     protected void init() {
         super.init();
 
-        FlowObserver.FlowObserverBuilder builder = FlowObserver.builder()
+        pingStatusBuilder = PingStatus.builder()
                 .failDelay(failDelay)
                 .failReset(failReset);
-        cache = new FlowObserversPool(builder);
+        flowsStatusMap = new HashMap<>();
     }
 
     @Override
@@ -60,39 +69,74 @@ public class FailReporter extends Abstract {
 
         if (MonotonicTick.BOLT_ID.equals(component)) {
             handleTick(input);
-        // TODO
+        } else if (FlowFetcher.BOLT_ID.equals(component)) {
+            handleCacheExpiration(input);
+        } else if (PeriodicResultManager.BOLT_ID.equals(component)) {
+            handlePing(input);
         } else {
             unhandledInput(input);
         }
     }
 
-    private void handleTick(Tuple input) {
+    private void handleTick(Tuple input) throws PipelineException {
         final long now = input.getLongByField(MonotonicTick.FIELD_ID_TIME_MILLIS);
-        ArrayList<String> failFlows = new ArrayList<>();
 
-        for (FlowObserversPool.Entry entry : cache.getAll()) {
-            FlowObserver flowObserver = entry.flowObserver;
+        for (Iterator<Entry<String, FlowStatus>> iterator = flowsStatusMap.entrySet().iterator();
+                iterator.hasNext(); ) {
 
-            flowObserver.timeTick(now);
-            if (flowObserver.isFail()) {
-                failFlows.add(entry.flowId);
+            Entry<String, FlowStatus> entry = iterator.next();
+            FlowStatus flowStatus = entry.getValue();
+
+            if (flowStatus.isGarbage()) {
+                iterator.remove();
+                continue;
             }
-        }
 
-        for (String flowId : failFlows) {
-            report(input, flowId, now);
+            PingReport.Status status = flowStatus.timeTick(now);
+            if (status != null) {
+                report(input, entry.getKey(), flowStatus, status);
+            }
         }
     }
 
-    private void report(Tuple intput, String flowId, long now) {
-        for (FlowObserver observer : cache.get(flowId)) {
-            if (observer.isFail()) {
-                observer.markReported(now);
-            }
+    private void handleCacheExpiration(Tuple input) throws PipelineException {
+        FlowRef ref = pullFlowRef(input);
+        FlowStatus status = flowsStatusMap.get(ref.flowId);
+        if (status != null) {
+            status.remove(ref.cookie);
+        }
+    }
+
+    private void handlePing(Tuple input) throws PipelineException {
+        PingContext pingContext = pullPingContext(input);
+        if (pingContext.isPermanentError()) {
+            log.warn("Do not include permanent ping error in report ({})", pingContext);
+            return;
         }
 
-        log.info("Flow {} is marked as FAILED due to ping check results", flowId);
-        // TODO make sync record
+        FlowStatus flowStatus = this.flowsStatusMap.computeIfAbsent(
+                pingContext.getFlowId(), k -> new FlowStatus(pingStatusBuilder));
+        flowStatus.update(pingContext);
+    }
+
+    private void report(Tuple input, String flowId, FlowStatus flowStatus, PingReport.Status status)
+            throws PipelineException {
+        String logMessage = String.format("{FLOW-PING} Flow %s become %s", flowId, status);
+        if (status == PingReport.Status.FAILED) {
+            String cookies = flowStatus.getFailedCookies().stream()
+                    .map(cookie -> String.format("0x%016x", cookie))
+                    .collect(Collectors.joining(", "));
+            logMessage += String.format("(%s)", cookies);
+        }
+
+        log.info(logMessage);
+
+        Values output = new Values(new PingReport(flowId, status), pullContext(input));
+        getOutput().emit(input, output);
+    }
+
+    private FlowRef pullFlowRef(Tuple input) throws PipelineException {
+        return pullValue(input, FlowFetcher.FIELD_FLOW_REF, FlowRef.class);
     }
 
     @Override
