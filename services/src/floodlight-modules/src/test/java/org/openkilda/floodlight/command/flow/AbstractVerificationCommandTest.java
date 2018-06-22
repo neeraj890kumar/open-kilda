@@ -20,12 +20,12 @@ import static org.easymock.EasyMock.replay;
 
 import org.openkilda.floodlight.command.CommandContext;
 import org.openkilda.floodlight.kafka.KafkaMessageProducer;
-import org.openkilda.floodlight.service.FlowVerificationService;
+import org.openkilda.floodlight.service.PingService;
 import org.openkilda.floodlight.service.batch.OfBatchService;
-import org.openkilda.messaging.command.flow.FlowDirection;
 import org.openkilda.messaging.command.flow.FlowVerificationRequest;
 import org.openkilda.messaging.command.flow.UniFlowVerificationRequest;
 import org.openkilda.messaging.model.Flow;
+import org.openkilda.messaging.model.FlowDirection;
 
 import net.floodlightcontroller.core.IOFSwitch;
 import net.floodlightcontroller.core.internal.IOFSwitchService;
@@ -53,7 +53,7 @@ public abstract class AbstractVerificationCommandTest {
     protected KafkaMessageProducer kafkaProducerService = EasyMock.createMock(KafkaMessageProducer.class);
     protected OfBatchService ioService = EasyMock.createMock(OfBatchService.class);
     protected IOFSwitchService switchService = EasyMock.createMock(IOFSwitchService.class);
-    protected FlowVerificationService flowVerificationService = EasyMock.createMock(FlowVerificationService.class);
+    protected PingService pingService = EasyMock.createMock(PingService.class);
     protected IThreadPoolService threadPoolService = EasyMock.createMock(IThreadPoolService.class);
 
     @Before
@@ -62,7 +62,7 @@ public abstract class AbstractVerificationCommandTest {
         moduleContext.addService(KafkaMessageProducer.class, kafkaProducerService);
         moduleContext.addService(OfBatchService.class, ioService);
         moduleContext.addService(IOFSwitchService.class, switchService);
-        moduleContext.addService(FlowVerificationService.class, flowVerificationService);
+        moduleContext.addService(PingService.class, pingService);
         moduleContext.addService(IThreadPoolService.class, threadPoolService);
 
         context = new CommandContext(moduleContext, String.format(correlationIdTemplate, testIndex++));

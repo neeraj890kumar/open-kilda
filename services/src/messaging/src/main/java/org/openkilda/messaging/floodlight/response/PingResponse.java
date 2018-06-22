@@ -17,20 +17,21 @@ package org.openkilda.messaging.floodlight.response;
 
 import org.openkilda.messaging.info.InfoData;
 import org.openkilda.messaging.model.Ping;
-import org.openkilda.messaging.model.Ping.Errors;
 import org.openkilda.messaging.model.PingMeters;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;
 
+import java.util.UUID;
+
 @Value
 public class PingResponse extends InfoData {
     @JsonProperty("timestamp")
     private long timestamp;
 
-    @JsonProperty("ping")
-    private Ping ping;
+    @JsonProperty("ping_id")
+    private UUID pingId;
 
     @JsonProperty("error")
     private Ping.Errors error;
@@ -41,17 +42,24 @@ public class PingResponse extends InfoData {
     @JsonCreator
     public PingResponse(
             @JsonProperty("timestamp") long timestamp,
-            @JsonProperty("ping") Ping ping,
-            @JsonProperty("error") Errors error,
+            @JsonProperty("ping_id") UUID pingId,
+            @JsonProperty("error") Ping.Errors error,
             @JsonProperty("meters") PingMeters meters) {
         this.timestamp = timestamp;
-        this.ping = ping;
+        this.pingId = pingId;
         this.error = error;
         this.meters = meters;
     }
 
-    public PingResponse(Ping ping, Errors error, PingMeters meters) {
-        this(System.currentTimeMillis(),
-                ping, error, meters);
+    public PingResponse(UUID pingId, PingMeters meters) {
+        this(pingId, null, meters);
+    }
+
+    public PingResponse(UUID pingId, Ping.Errors error) {
+        this(pingId, error, null);
+    }
+
+    public PingResponse(UUID pingId, Ping.Errors error, PingMeters meters) {
+        this(System.currentTimeMillis(), pingId, error, meters);
     }
 }

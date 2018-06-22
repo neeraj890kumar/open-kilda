@@ -18,12 +18,19 @@ package org.openkilda.floodlight.kafka;
 import org.openkilda.config.KafkaTopicsConfig;
 import org.openkilda.floodlight.config.KafkaFloodlightConfig;
 import org.openkilda.floodlight.config.provider.ConfigurationProvider;
+import org.openkilda.floodlight.service.PingService;
+import org.openkilda.floodlight.service.batch.OfBatchService;
 import org.openkilda.floodlight.switchmanager.ISwitchManager;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import net.floodlightcontroller.core.IFloodlightProviderService;
+import net.floodlightcontroller.core.internal.IOFSwitchService;
 import net.floodlightcontroller.core.module.FloodlightModuleContext;
 import net.floodlightcontroller.core.module.FloodlightModuleException;
 import net.floodlightcontroller.core.module.IFloodlightModule;
 import net.floodlightcontroller.core.module.IFloodlightService;
+import net.floodlightcontroller.threadpool.IThreadPoolService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,24 +45,34 @@ public class KafkaMessageCollector implements IFloodlightModule {
 
     private static final Logger logger = LoggerFactory.getLogger(KafkaMessageCollector.class);
 
-    /**
-     * IFloodLightModule Methods
-     */
+    private OfBatchService ofBatchService = new OfBatchService();
+    private PingService pingService = new PingService();
+
     @Override
     public Collection<Class<? extends IFloodlightService>> getModuleServices() {
-        return null;
+        return ImmutableList.of(
+                OfBatchService.class,
+                PingService.class);
     }
 
     @Override
     public Map<Class<? extends IFloodlightService>, IFloodlightService> getServiceImpls() {
-        return null;
+        return ImmutableMap.of(
+                OfBatchService.class, ofBatchService,
+                PingService.class, pingService);
     }
 
     @Override
     public Collection<Class<? extends IFloodlightService>> getModuleDependencies() {
-        Collection<Class<? extends IFloodlightService>> services = new ArrayList<>();
-        ConsumerContext.fillDependencies(services);
-        return services;
+        Collection<Class<? extends IFloodlightService>> dependencies = new ArrayList<>();
+        ConsumerContext.fillDependencies(dependencies);
+
+        dependencies.add(IFloodlightProviderService.class);
+        dependencies.add(IOFSwitchService.class);
+        dependencies.add(IThreadPoolService.class);
+        dependencies.add(KafkaMessageProducer.class);
+
+        return dependencies;
     }
 
     @Override
@@ -64,29 +81,37 @@ public class KafkaMessageCollector implements IFloodlightModule {
 
     @Override
     public void startUp(FloodlightModuleContext moduleContext) throws FloodlightModuleException {
+        logger.info("Starting {}", this.getClass().getCanonicalName());
+
+        ofBatchService.init(moduleContext);
+        pingService.init(moduleContext);
+
+        ConsumerContext context = initContext(moduleContext);
+        initConsumer(moduleContext, context);
+    }
+
+    private ConsumerContext initContext(FloodlightModuleContext moduleContext) {
         ConfigurationProvider provider = new ConfigurationProvider(moduleContext, this);
 
         KafkaFloodlightConfig kafkaConfig = provider.getConfiguration(KafkaFloodlightConfig.class);
         KafkaTopicsConfig topicsConfig = provider.getConfiguration(KafkaTopicsConfig.class);
-        String inputTopic = topicsConfig.getSpeakerTopic();
 
-        ConsumerContext context = new ConsumerContext(moduleContext, kafkaConfig, topicsConfig);
+        return new ConsumerContext(moduleContext, kafkaConfig, topicsConfig);
+    }
+
+    private void initConsumer(FloodlightModuleContext moduleContext, ConsumerContext context) {
         RecordHandler.Factory handlerFactory = new RecordHandler.Factory(context);
         ISwitchManager switchManager = moduleContext.getServiceImpl(ISwitchManager.class);
 
-        logger.info("Starting {}", this.getClass().getCanonicalName());
-        try {
-            ExecutorService parseRecordExecutor = Executors.newFixedThreadPool(EXEC_POOL_SIZE);
+        ExecutorService parseRecordExecutor = Executors.newFixedThreadPool(EXEC_POOL_SIZE);
 
-            Consumer consumer;
-            if (!context.isTestingMode()) {
-                consumer = new Consumer(context, parseRecordExecutor, handlerFactory, switchManager, inputTopic);
-            } else {
-                consumer = new TestAwareConsumer(context, parseRecordExecutor, handlerFactory, switchManager, inputTopic);
-            }
-            Executors.newSingleThreadExecutor().execute(consumer);
-        } catch (Exception exception) {
-            logger.error("error", exception);
+        String inputTopic = context.getKafkaSpeakerTopic();
+        Consumer consumer;
+        if (!context.isTestingMode()) {
+            consumer = new Consumer(context, parseRecordExecutor, handlerFactory, switchManager, inputTopic);
+        } else {
+            consumer = new TestAwareConsumer(context, parseRecordExecutor, handlerFactory, switchManager, inputTopic);
         }
+        Executors.newSingleThreadExecutor().execute(consumer);
     }
 }

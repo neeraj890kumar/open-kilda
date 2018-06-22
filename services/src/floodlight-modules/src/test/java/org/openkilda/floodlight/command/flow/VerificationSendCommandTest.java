@@ -50,8 +50,8 @@ public class VerificationSendCommandTest extends AbstractVerificationCommandTest
 
     @Test
     public void run() throws OFInstallException {
-        expect(flowVerificationService.getSignature()).andReturn(signature);
-        replay(flowVerificationService);
+        expect(pingService.getSignature()).andReturn(signature);
+        replay(pingService);
 
         OFFactory ofFactory = new OFFactoryVer13();
         expect(sourceSwitch.getOFFactory()).andReturn(ofFactory).anyTimes();
@@ -68,7 +68,7 @@ public class VerificationSendCommandTest extends AbstractVerificationCommandTest
 
         subject.run();
 
-        verify(flowVerificationService, switchService, sourceSwitch, destSwitch, ioService);
+        verify(pingService, switchService, sourceSwitch, destSwitch, ioService);
 
         List<OfPendingMessage> pushPayload = capturePushPayload.getValue();
         Assert.assertTrue("Send operation does not produce packet out message", 0 < pushPayload.size());

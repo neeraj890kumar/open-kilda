@@ -19,19 +19,17 @@ import org.openkilda.floodlight.service.batch.OfPendingMessage;
 
 import java.util.List;
 
-public abstract class Command implements Runnable {
+public abstract class Command {
     private final CommandContext context;
 
     public Command(CommandContext context) {
         this.context = context;
     }
 
+    public abstract void execute();
+
     public void ioComplete(List<OfPendingMessage> payload, boolean isError) {
         throw new IllegalArgumentException("Can't handle IO response, because don't send any IO requests");
-    }
-
-    protected void startSubCommand(Command command) {
-        command.run();
     }
 
     protected CommandContext getContext() {

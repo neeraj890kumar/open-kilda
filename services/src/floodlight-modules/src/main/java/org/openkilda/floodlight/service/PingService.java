@@ -16,13 +16,21 @@
 package org.openkilda.floodlight.service;
 
 import org.openkilda.floodlight.SwitchUtils;
+import org.openkilda.floodlight.command.CommandContext;
 import org.openkilda.floodlight.command.flow.VerificationListenCommand;
 import org.openkilda.floodlight.command.flow.VerificationSendCommand;
 import org.openkilda.floodlight.error.CorruptedNetworkDataException;
+import org.openkilda.floodlight.error.InsufficientCapabilitiesException;
 import org.openkilda.floodlight.error.InvalidSignatureConfigurationException;
 import org.openkilda.floodlight.model.flow.VerificationData;
 import org.openkilda.floodlight.pathverification.PathVerificationService;
 import org.openkilda.floodlight.utils.DataSignature;
+import org.openkilda.messaging.Topic;
+import org.openkilda.messaging.floodlight.request.PingRequest;
+import org.openkilda.messaging.floodlight.response.PingResponse;
+import org.openkilda.messaging.info.InfoMessage;
+import org.openkilda.messaging.info.flow.UniFlowVerificationResponse;
+import org.openkilda.messaging.model.Ping;
 
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.google.common.collect.ImmutableSet;
@@ -36,39 +44,21 @@ import net.floodlightcontroller.core.module.IFloodlightService;
 import net.floodlightcontroller.packet.Ethernet;
 import org.projectfloodlight.openflow.protocol.OFMessage;
 import org.projectfloodlight.openflow.protocol.OFType;
+import org.projectfloodlight.openflow.protocol.OFVersion;
+import org.projectfloodlight.openflow.types.DatapathId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
-public class FlowVerificationService extends AbstractOfHandler implements IFloodlightService {
-    private static Logger log = LoggerFactory.getLogger(FlowVerificationService.class);
-
-    private final LinkedList<VerificationListenCommand> pendingRecipients = new LinkedList<>();
+public class PingService extends AbstractOfHandler implements IFloodlightService {
+    private static Logger log = LoggerFactory.getLogger(PingService.class);
 
     private DataSignature signature = null;
     private SwitchUtils switchUtils = null;
-
-    /**
-     * subscribe handler.
-     */
-    public void subscribe(VerificationListenCommand handler) {
-        synchronized (pendingRecipients) {
-            pendingRecipients.add(handler);
-        }
-    }
-
-    /**
-     * unsubscribe handler.
-     */
-    public void unsubscribe(VerificationListenCommand handler) {
-        synchronized (pendingRecipients) {
-            pendingRecipients.remove(handler);
-        }
-    }
 
     /**
      * Initialize internal data structures. Called by module that own this service. Called after all dependencies have

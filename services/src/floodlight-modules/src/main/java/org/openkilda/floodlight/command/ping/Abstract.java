@@ -13,39 +13,36 @@
  *   limitations under the License.
  */
 
-package org.openkilda.floodlight.command.flow;
+package org.openkilda.floodlight.command.ping;
 
 import org.openkilda.floodlight.command.Command;
 import org.openkilda.floodlight.command.CommandContext;
 import org.openkilda.floodlight.kafka.KafkaMessageProducer;
 import org.openkilda.messaging.Topic;
-import org.openkilda.messaging.command.flow.UniFlowVerificationRequest;
+import org.openkilda.messaging.floodlight.response.PingResponse;
 import org.openkilda.messaging.info.InfoMessage;
-import org.openkilda.messaging.info.flow.FlowVerificationErrorCode;
-import org.openkilda.messaging.info.flow.UniFlowVerificationResponse;
+import org.openkilda.messaging.model.Ping;
 
-abstract class AbstractVerificationCommand extends Command {
+import java.util.UUID;
+
+abstract class Abstract extends Command {
     private final KafkaMessageProducer kafkaProducer;
-    private final UniFlowVerificationRequest verificationRequest;
+    private final UUID pingId;
 
-    AbstractVerificationCommand(CommandContext context, UniFlowVerificationRequest verificationRequest) {
+    public Abstract(CommandContext context, UUID pingId) {
         super(context);
+        this.pingId = pingId;
 
-        this.verificationRequest = verificationRequest;
         kafkaProducer = getContext().getModuleContext().getServiceImpl(KafkaMessageProducer.class);
     }
 
-    protected void sendResponse(UniFlowVerificationResponse response) {
-        InfoMessage message = new InfoMessage(response, System.currentTimeMillis(), getContext().getCorrelationId());
-        kafkaProducer.postMessage(Topic.FLOW, message);
-    }
-
-    protected void sendErrorResponse(FlowVerificationErrorCode errorCode) {
-        UniFlowVerificationResponse response = new UniFlowVerificationResponse(verificationRequest, errorCode);
+    protected void sendErrorResponse(Ping.Errors errorCode) {
+        PingResponse response = new PingResponse(pingId, errorCode);
         sendResponse(response);
     }
 
-    protected UniFlowVerificationRequest getVerificationRequest() {
-        return verificationRequest;
+    protected void sendResponse(PingResponse response) {
+        InfoMessage message = new InfoMessage(response, System.currentTimeMillis(), getContext().getCorrelationId());
+        kafkaProducer.postMessage(Topic.FLOW, message);
     }
 }

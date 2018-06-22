@@ -19,7 +19,7 @@ import org.openkilda.floodlight.SwitchUtils;
 import org.openkilda.floodlight.command.CommandContext;
 import org.openkilda.floodlight.model.flow.VerificationData;
 import org.openkilda.floodlight.pathverification.PathVerificationService;
-import org.openkilda.floodlight.service.FlowVerificationService;
+import org.openkilda.floodlight.service.PingService;
 import org.openkilda.floodlight.service.batch.OfBatchService;
 import org.openkilda.floodlight.service.batch.OfPendingMessage;
 import org.openkilda.floodlight.switchmanager.OFInstallException;
@@ -63,7 +63,7 @@ public class VerificationSendCommand extends AbstractVerificationCommand {
         FloodlightModuleContext moduleContext = getContext().getModuleContext();
         this.ioService = moduleContext.getServiceImpl(OfBatchService.class);
         this.switchUtils = new SwitchUtils(moduleContext.getServiceImpl(IOFSwitchService.class));
-        this.signature = moduleContext.getServiceImpl(FlowVerificationService.class).getSignature();
+        this.signature = moduleContext.getServiceImpl(PingService.class).getSignature();
     }
 
     @Override
