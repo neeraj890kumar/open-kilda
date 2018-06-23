@@ -27,21 +27,19 @@ import java.util.UUID;
 
 abstract class Abstract extends Command {
     private final KafkaMessageProducer kafkaProducer;
-    private final UUID pingId;
 
-    public Abstract(CommandContext context, UUID pingId) {
+    Abstract(CommandContext context) {
         super(context);
-        this.pingId = pingId;
 
         kafkaProducer = getContext().getModuleContext().getServiceImpl(KafkaMessageProducer.class);
     }
 
-    protected void sendErrorResponse(Ping.Errors errorCode) {
+    void sendErrorResponse(UUID pingId, Ping.Errors errorCode) {
         PingResponse response = new PingResponse(pingId, errorCode);
         sendResponse(response);
     }
 
-    protected void sendResponse(PingResponse response) {
+    void sendResponse(PingResponse response) {
         InfoMessage message = new InfoMessage(response, System.currentTimeMillis(), getContext().getCorrelationId());
         kafkaProducer.postMessage(Topic.FLOW, message);
     }

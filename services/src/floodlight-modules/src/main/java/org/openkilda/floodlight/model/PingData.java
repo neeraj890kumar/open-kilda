@@ -1,4 +1,5 @@
-/* Copyright 2018 Telstra Open Source
+/*
+ * Copyright 2018 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -13,11 +14,12 @@
  *   limitations under the License.
  */
 
-package org.openkilda.floodlight.model.flow;
+package org.openkilda.floodlight.model;
 
 import org.openkilda.floodlight.error.CorruptedNetworkDataException;
 import org.openkilda.messaging.command.flow.UniFlowVerificationRequest;
-import org.openkilda.messaging.info.flow.VerificationMeasures;
+import org.openkilda.messaging.model.Ping;
+import org.openkilda.messaging.model.PingMeters;
 
 import com.auth0.jwt.JWTCreator;
 import com.auth0.jwt.interfaces.DecodedJWT;
@@ -27,8 +29,8 @@ import org.projectfloodlight.openflow.types.DatapathId;
 
 import java.util.UUID;
 
-public class VerificationData {
-    private static String JWT_KEY_PREFIX = "flow.verification.";
+public class PingData implements ISignPayload {
+    private static String JWT_KEY_PREFIX = "openkilda.ping.";
 
     private long sendTime = 0;
     private long recvTime = 0;
@@ -39,18 +41,18 @@ public class VerificationData {
     private final UUID packetId;
 
     /**
-     * Build {@link VerificationData} from {@link DecodedJWT} token.
+     * Build {@link PingData} from {@link DecodedJWT} token.
      */
-    public static VerificationData of(DecodedJWT token) throws CorruptedNetworkDataException {
+    public static PingData of(DecodedJWT token) throws CorruptedNetworkDataException {
         long recvTime = System.currentTimeMillis();
 
-        VerificationData data;
+        PingData data;
         try {
             DatapathId source = DatapathId.of(token.getClaim(makeJwtKey("source")).asLong());
             DatapathId dest = DatapathId.of(token.getClaim(makeJwtKey("dest")).asLong());
             UUID packetId = UUID.fromString(token.getClaim(makeJwtKey("id")).asString());
 
-            data = new VerificationData(source, dest, packetId);
+            data = new PingData(source, dest, packetId);
             data.setSenderLatency(token.getClaim(makeJwtKey("senderLatency")).asLong());
             data.setSendTime(token.getClaim(makeJwtKey("time")).asLong());
             data.setRecvTime(recvTime);
@@ -63,15 +65,15 @@ public class VerificationData {
     }
 
     /**
-     * Build {@link VerificationData} from {@link UniFlowVerificationRequest} instance.
+     * Build {@link PingData} from {@link UniFlowVerificationRequest} instance.
      */
-    public static VerificationData of(UniFlowVerificationRequest verificationRequest) {
-        DatapathId source = DatapathId.of(verificationRequest.getSourceSwitchId());
-        DatapathId dest = DatapathId.of(verificationRequest.getDestSwitchId());
-        return new VerificationData(source, dest, verificationRequest.getPacketId());
+    public static PingData of(Ping ping) {
+        DatapathId source = DatapathId.of(ping.getSource().getSwitchDpId());
+        DatapathId dest = DatapathId.of(ping.getDest().getSwitchDpId());
+        return new PingData(source, dest, ping.getPingId());
     }
 
-    public VerificationData(DatapathId source, DatapathId dest, UUID packetId) {
+    public PingData(DatapathId source, DatapathId dest, UUID packetId) {
         this.source = source;
         this.dest = dest;
         this.packetId = packetId;
@@ -80,7 +82,7 @@ public class VerificationData {
     /**
      * Populate data into JWT builder.
      */
-    public JWTCreator.Builder toJwt(JWTCreator.Builder token) {
+    public JWTCreator.Builder toSign(JWTCreator.Builder token) {
         token.withClaim(makeJwtKey("source"), source.getLong());
         token.withClaim(makeJwtKey("dest"), dest.getLong());
         token.withClaim(makeJwtKey("id"), packetId.toString());
@@ -95,12 +97,12 @@ public class VerificationData {
     /**
      * Calculate flow's latency.
      */
-    public VerificationMeasures produceMeasurements(long recipientLatency) {
+    public PingMeters produceMeasurements(long recipientLatency) {
         long latency = getRecvTime() - getSendTime() - getSenderLatency() - recipientLatency;
         if (latency < 0) {
             latency = -1;
         }
-        return new VerificationMeasures(latency, getSenderLatency(), recipientLatency);
+        return new PingMeters(latency, getSenderLatency(), recipientLatency);
     }
 
     public long getSendTime() {
@@ -148,7 +150,7 @@ public class VerificationData {
             return false;
         }
 
-        VerificationData that = (VerificationData) o;
+        PingData that = (PingData) o;
 
         return new EqualsBuilder()
                 .append(source, that.source)

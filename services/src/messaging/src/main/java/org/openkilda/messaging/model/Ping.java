@@ -34,7 +34,7 @@ public class Ping implements Serializable {
     private UUID pingId;
 
     @JsonProperty("source_vlan")
-    private Integer sourceVlanId;
+    private Short sourceVlanId;
 
     @JsonProperty(value = "source", required = true)
     private NetworkEndpoint source;
@@ -45,7 +45,7 @@ public class Ping implements Serializable {
     @JsonCreator
     public Ping(
             @JsonProperty("ping_id") UUID pingId,
-            @JsonProperty("source_vlan") Integer sourceVlanId,
+            @JsonProperty("source_vlan") Short sourceVlanId,
             @JsonProperty("source") NetworkEndpoint source,
             @JsonProperty("dest") NetworkEndpoint dest) {
 
@@ -62,7 +62,7 @@ public class Ping implements Serializable {
     }
 
     public Ping(Flow flow) {
-        this(UUID.randomUUID(), flow.getSourceVlan(),
+        this(UUID.randomUUID(), (short) flow.getSourceVlan(),
                 new NetworkEndpoint(flow.getSourceSwitch(), flow.getSourcePort()),
                 new NetworkEndpoint(flow.getDestinationSwitch(), flow.getDestinationPort()));
     }

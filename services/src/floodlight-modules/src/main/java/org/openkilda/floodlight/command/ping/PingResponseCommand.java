@@ -15,11 +15,35 @@
 
 package org.openkilda.floodlight.command.ping;
 
+import org.openkilda.floodlight.command.CommandContext;
+import org.openkilda.floodlight.error.CorruptedNetworkDataException;
+import org.openkilda.floodlight.model.PingData;
 import org.openkilda.messaging.info.flow.UniFlowVerificationResponse;
 
 public class PingResponseCommand extends Abstract {
+    private final byte[] payload;
+
+    public PingResponseCommand(CommandContext context, byte[] payload) {
+        super(context);
+
+        this.payload = payload;
+    }
+
     @Override
     public void execute() {
+        PingData data;
+        try {
+            data = PingData.of(token);
+
+            if (!data.getDest().equals(sw.getId())) {
+                throw new CorruptedNetworkDataException(String.format(
+                        "Catch flow verification package on %s while target is %s", sw.getId(), data.getDest()));
+            }
+        } catch (CorruptedNetworkDataException e) {
+            log.error(String.format("dpid:%s %s", sw.getId(), e));
+            return false;
+        }
+
         if (! verificationData.equals(payload)) {
             return false;
         }
