@@ -41,7 +41,7 @@ import org.projectfloodlight.openflow.types.DatapathId;
 import java.util.Iterator;
 import java.util.List;
 
-public class BatchRecordTest {
+public class OfBatchTest {
     private OFMessage payload;
     private IOFSwitch iofSwitch = createMock(IOFSwitch.class);
     private SwitchUtils switchUtils = createMock(SwitchUtils.class);
@@ -58,8 +58,8 @@ public class BatchRecordTest {
 
     @Test
     public void write() {
-        OfPendingMessage batchRecord = new OfPendingMessage(switchId, payload);
-        BatchRecord batch = new BatchRecord(switchUtils, ImmutableList.of(batchRecord));
+        OfRequestResponse batchRecord = new OfRequestResponse(switchId, payload);
+        OfBatch batch = new OfBatch(switchUtils, ImmutableList.of(batchRecord));
 
         expect(switchUtils.lookupSwitch(switchId)).andReturn(iofSwitch).anyTimes();
         replay(switchUtils);

@@ -23,7 +23,7 @@ import static org.easymock.EasyMock.newCapture;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 
-import org.openkilda.floodlight.service.batch.OfPendingMessage;
+import org.openkilda.floodlight.service.batch.OfRequestResponse;
 import org.openkilda.floodlight.switchmanager.OFInstallException;
 import org.openkilda.floodlight.utils.DataSignature;
 import org.openkilda.messaging.command.flow.UniFlowVerificationRequest;
@@ -60,7 +60,7 @@ public class VerificationSendCommandTest extends AbstractVerificationCommandTest
         UniFlowVerificationRequest request = makeVerificationRequest();
         VerificationSendCommand subject = new VerificationSendCommand(context, request);
 
-        Capture<List<OfPendingMessage>> capturePushPayload = newCapture(CaptureType.LAST);
+        Capture<List<OfRequestResponse>> capturePushPayload = newCapture(CaptureType.LAST);
 
         ioService.push(eq(subject), capture(capturePushPayload));
         expectLastCall().once();
@@ -70,7 +70,7 @@ public class VerificationSendCommandTest extends AbstractVerificationCommandTest
 
         verify(pingService, switchService, sourceSwitch, destSwitch, ioService);
 
-        List<OfPendingMessage> pushPayload = capturePushPayload.getValue();
+        List<OfRequestResponse> pushPayload = capturePushPayload.getValue();
         Assert.assertTrue("Send operation does not produce packet out message", 0 < pushPayload.size());
     }
 }

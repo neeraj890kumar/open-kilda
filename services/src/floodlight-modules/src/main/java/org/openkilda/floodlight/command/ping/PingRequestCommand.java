@@ -20,7 +20,7 @@ import org.openkilda.floodlight.error.InsufficientCapabilitiesException;
 import org.openkilda.floodlight.model.PingData;
 import org.openkilda.floodlight.service.PingService;
 import org.openkilda.floodlight.service.batch.OfBatchService;
-import org.openkilda.floodlight.service.batch.OfPendingMessage;
+import org.openkilda.floodlight.service.batch.OfRequestResponse;
 import org.openkilda.floodlight.switchmanager.OFInstallException;
 import org.openkilda.messaging.floodlight.request.PingRequest;
 import org.openkilda.messaging.model.Ping;
@@ -75,7 +75,7 @@ public class PingRequestCommand extends Abstract {
     }
 
     @Override
-    public void ioComplete(List<OfPendingMessage> payload, boolean isError) {
+    public void ioComplete(List<OfRequestResponse> payload, boolean isError) {
         if (!isError) {
             return;
         }
@@ -115,7 +115,7 @@ public class PingRequestCommand extends Abstract {
         OFMessage message = makePacketOut(sw, packet.serialize());
 
         try {
-            ioService.push(this, ImmutableList.of(new OfPendingMessage(sw.getId(), message)));
+            ioService.push(this, ImmutableList.of(new OfRequestResponse(sw.getId(), message)));
         } catch (OFInstallException e) {
             sendErrorResponse(ping.getPingId(), Ping.Errors.WRITE_FAILURE);
         }

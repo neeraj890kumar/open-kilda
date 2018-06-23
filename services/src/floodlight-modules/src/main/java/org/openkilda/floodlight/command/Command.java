@@ -15,7 +15,7 @@
 
 package org.openkilda.floodlight.command;
 
-import org.openkilda.floodlight.service.batch.OfPendingMessage;
+import org.openkilda.floodlight.service.batch.OfRequestResponse;
 
 import java.util.List;
 
@@ -28,7 +28,7 @@ public abstract class Command {
 
     public abstract void execute();
 
-    public void ioComplete(List<OfPendingMessage> payload, boolean isError) {
+    public void ioComplete(List<OfRequestResponse> payload, boolean isError) {
         throw new IllegalArgumentException("Can't handle IO response, because don't send any IO requests");
     }
 

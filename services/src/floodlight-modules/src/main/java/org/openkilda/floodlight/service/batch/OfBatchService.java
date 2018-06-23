@@ -16,6 +16,7 @@
 package org.openkilda.floodlight.service.batch;
 
 import org.openkilda.floodlight.SwitchUtils;
+import org.openkilda.floodlight.model.OfRequestResponse;
 import org.openkilda.floodlight.service.AbstractOfHandler;
 import org.openkilda.floodlight.switchmanager.OFInstallException;
 
@@ -43,11 +44,11 @@ public class OfBatchService extends AbstractOfHandler implements IFloodlightServ
     /**
      * Write prepared OFMessages to switches.
      */
-    public synchronized void push(org.openkilda.floodlight.command.Command initiator, List<OfPendingMessage> payload)
+    public synchronized void push(org.openkilda.floodlight.command.Command initiator, List<OfRequestResponse> payload)
             throws OFInstallException {
         log.debug("Got io request with {} message(s) from {}", payload.size(), initiator);
 
-        BatchRecord batch = new BatchRecord(switchUtils, payload);
+        OfBatch batch = new OfBatch(switchUtils, payload);
         operations.addLast(new Task(initiator, batch));
 
         try {
@@ -72,7 +73,7 @@ public class OfBatchService extends AbstractOfHandler implements IFloodlightServ
             for (ListIterator<Task> iterator = operations.listIterator(); iterator.hasNext(); ) {
                 Task task = iterator.next();
 
-                if (!task.batch.handleResponse(message)) {
+                if (!task.batch.handleResponse(sw.getId(), message)) {
                     continue;
                 }
 
@@ -96,9 +97,9 @@ public class OfBatchService extends AbstractOfHandler implements IFloodlightServ
 
     private class Task {
         final org.openkilda.floodlight.command.Command command;
-        final BatchRecord batch;
+        final OfBatch batch;
 
-        Task(org.openkilda.floodlight.command.Command command, BatchRecord batch) {
+        Task(org.openkilda.floodlight.command.Command command, OfBatch batch) {
             this.command = command;
             this.batch = batch;
         }
