@@ -53,7 +53,6 @@ public class PingRequestCommand extends Abstract {
     private final IOFSwitchService switchService;
 
     private final OfBatchService ioService;
-    private final PingService pingService;
 
     public PingRequestCommand(CommandContext context, PingRequest request) {
         super(context);
@@ -63,7 +62,6 @@ public class PingRequestCommand extends Abstract {
         FloodlightModuleContext moduleContext = context.getModuleContext();
         switchService = moduleContext.getServiceImpl(IOFSwitchService.class);
         ioService = moduleContext.getServiceImpl(OfBatchService.class);
-        pingService = moduleContext.getServiceImpl(PingService.class);
     }
 
     @Override
@@ -111,6 +109,7 @@ public class PingRequestCommand extends Abstract {
         PingData data = PingData.of(ping);
         data.setSenderLatency(sw.getLatency().getValue());
 
+        PingService pingService = getPingService();
         byte[] signedData = pingService.getSignature().sign(data);
         Ethernet packet = pingService.wrapData(ping, signedData);
         OFMessage message = makePacketOut(sw, packet.serialize());

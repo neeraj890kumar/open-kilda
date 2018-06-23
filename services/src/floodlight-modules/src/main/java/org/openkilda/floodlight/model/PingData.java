@@ -38,7 +38,7 @@ public class PingData implements ISignPayload {
 
     private final DatapathId source;
     private final DatapathId dest;
-    private final UUID packetId;
+    private final UUID pingId;
 
     /**
      * Build {@link PingData} from {@link DecodedJWT} token.
@@ -73,10 +73,10 @@ public class PingData implements ISignPayload {
         return new PingData(source, dest, ping.getPingId());
     }
 
-    public PingData(DatapathId source, DatapathId dest, UUID packetId) {
+    public PingData(DatapathId source, DatapathId dest, UUID pingId) {
         this.source = source;
         this.dest = dest;
-        this.packetId = packetId;
+        this.pingId = pingId;
     }
 
     /**
@@ -85,7 +85,7 @@ public class PingData implements ISignPayload {
     public JWTCreator.Builder toSign(JWTCreator.Builder token) {
         token.withClaim(makeJwtKey("source"), source.getLong());
         token.withClaim(makeJwtKey("dest"), dest.getLong());
-        token.withClaim(makeJwtKey("id"), packetId.toString());
+        token.withClaim(makeJwtKey("id"), pingId.toString());
 
         token.withClaim(makeJwtKey("senderLatency"), getSenderLatency());
         sendTime = System.currentTimeMillis();
@@ -137,8 +137,8 @@ public class PingData implements ISignPayload {
         return dest;
     }
 
-    public UUID getPacketId() {
-        return packetId;
+    public UUID getPingId() {
+        return pingId;
     }
 
     @Override
@@ -155,7 +155,7 @@ public class PingData implements ISignPayload {
         return new EqualsBuilder()
                 .append(source, that.source)
                 .append(dest, that.dest)
-                .append(packetId, that.packetId)
+                .append(pingId, that.pingId)
                 .isEquals();
     }
 
@@ -164,7 +164,7 @@ public class PingData implements ISignPayload {
         return new HashCodeBuilder(17, 37)
                 .append(source)
                 .append(dest)
-                .append(packetId)
+                .append(pingId)
                 .toHashCode();
     }
 

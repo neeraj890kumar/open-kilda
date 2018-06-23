@@ -18,14 +18,27 @@ package org.openkilda.floodlight.command.ping;
 import org.openkilda.floodlight.command.CommandContext;
 import org.openkilda.floodlight.error.CorruptedNetworkDataException;
 import org.openkilda.floodlight.model.PingData;
-import org.openkilda.messaging.info.flow.UniFlowVerificationResponse;
+import org.openkilda.messaging.floodlight.response.PingResponse;
+import org.openkilda.messaging.model.PingMeters;
+
+import com.auth0.jwt.interfaces.DecodedJWT;
+import net.floodlightcontroller.core.IOFSwitch;
+import org.projectfloodlight.openflow.types.DatapathId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PingResponseCommand extends Abstract {
+    private static final Logger log = LoggerFactory.getLogger(PingResponseCommand.class);
+
+    private final DatapathId datapathId;
+    private final long latency;
     private final byte[] payload;
 
-    public PingResponseCommand(CommandContext context, byte[] payload) {
+    public PingResponseCommand(CommandContext context, IOFSwitch sw, byte[] payload) {
         super(context);
 
+        this.datapathId = sw.getId();
+        this.latency = sw.getLatency().getValue();
         this.payload = payload;
     }
 
@@ -33,26 +46,25 @@ public class PingResponseCommand extends Abstract {
     public void execute() {
         PingData data;
         try {
+            DecodedJWT token = getPingService().getSignature().verify(payload);
             data = PingData.of(token);
-
-            if (!data.getDest().equals(sw.getId())) {
-                throw new CorruptedNetworkDataException(String.format(
-                        "Catch flow verification package on %s while target is %s", sw.getId(), data.getDest()));
-            }
+            getContext().setCorrelationId(data.getPingId().toString());
         } catch (CorruptedNetworkDataException e) {
-            log.error(String.format("dpid:%s %s", sw.getId(), e));
-            return false;
+            log.error(String.format("dpid:%s %s", datapathId, e));
+            return;
         }
 
-        if (! verificationData.equals(payload)) {
-            return false;
+        if (!data.getDest().equals(datapathId)) {
+            log.error("Catch flow verification package on %s while target is %s", datapathId, data.getDest());
+            return;
         }
 
-        VerificationMeasures measures = payload.produceMeasurements(sw.getLatency().getValue());
+        PingMeters meters = data.produceMeasurements(latency);
         log.debug(
                 "Receive flow VERIFICATION package - packetId: {}, latency: {}",
-                payload.getPacketId(), measures.getNetworkLatency());
-        UniFlowVerificationResponse response = new UniFlowVerificationResponse(getVerificationRequest(), measures);
+                data.getPingId(), meters.getNetworkLatency());
+
+        PingResponse response = new PingResponse(getContext().getCtime(), data.getPingId(), meters);
         sendResponse(response);
     }
 }

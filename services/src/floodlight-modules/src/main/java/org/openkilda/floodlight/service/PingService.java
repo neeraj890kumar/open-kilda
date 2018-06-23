@@ -17,20 +17,13 @@ package org.openkilda.floodlight.service;
 
 import org.openkilda.floodlight.SwitchUtils;
 import org.openkilda.floodlight.command.CommandContext;
-import org.openkilda.floodlight.command.flow.VerificationListenCommand;
 import org.openkilda.floodlight.command.ping.PingResponseCommand;
-import org.openkilda.floodlight.error.CorruptedNetworkDataException;
 import org.openkilda.floodlight.error.InvalidSignatureConfigurationException;
-import org.openkilda.floodlight.model.ISignPayload;
-import org.openkilda.floodlight.model.PingData;
-import org.openkilda.floodlight.model.flow.PingData;
 import org.openkilda.floodlight.pathverification.PathVerificationService;
 import org.openkilda.floodlight.switchmanager.ISwitchManager;
 import org.openkilda.floodlight.utils.DataSignature;
 import org.openkilda.messaging.model.Ping;
 
-import com.auth0.jwt.JWT;
-import com.auth0.jwt.interfaces.DecodedJWT;
 import com.google.common.collect.ImmutableSet;
 import net.floodlightcontroller.core.FloodlightContext;
 import net.floodlightcontroller.core.IFloodlightProviderService;
@@ -54,7 +47,6 @@ import org.projectfloodlight.openflow.types.U64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -114,23 +106,8 @@ public class PingService extends AbstractOfHandler implements IFloodlightService
         }
 
         CommandContext commandContext = new CommandContext(moduleContext);
-        PingResponseCommand command = new PingResponseCommand(commandContext, payload);
+        PingResponseCommand command = new PingResponseCommand(commandContext, sw, payload);
         command.execute();
-
-        // TODO
-        boolean isHandled = false;
-        synchronized (pendingRecipients) {
-            for (ListIterator<VerificationListenCommand> iter = pendingRecipients.listIterator(); iter.hasNext(); ) {
-                VerificationListenCommand command = iter.next();
-
-                if (!command.packetIn(sw, data)) {
-                    continue;
-                }
-                isHandled = true;
-                iter.remove();
-                break;
-            }
-        }
 
         return true;
     }

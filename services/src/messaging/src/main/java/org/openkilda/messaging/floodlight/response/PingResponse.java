@@ -51,8 +51,8 @@ public class PingResponse extends InfoData {
         this.meters = meters;
     }
 
-    public PingResponse(UUID pingId, PingMeters meters) {
-        this(pingId, null, meters);
+    public PingResponse(long timestamp, UUID pingId, PingMeters meters) {
+        this(timestamp, pingId, null, meters);
     }
 
     public PingResponse(UUID pingId, Ping.Errors error) {
