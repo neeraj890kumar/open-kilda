@@ -16,6 +16,7 @@
 package org.openkilda.floodlight.service.batch;
 
 import org.openkilda.floodlight.SwitchUtils;
+import org.openkilda.floodlight.model.OfBatchResult;
 import org.openkilda.floodlight.model.OfRequestResponse;
 import org.openkilda.floodlight.service.AbstractOfHandler;
 import org.openkilda.floodlight.switchmanager.OFInstallException;
@@ -27,81 +28,63 @@ import net.floodlightcontroller.core.module.FloodlightModuleContext;
 import net.floodlightcontroller.core.module.IFloodlightService;
 import org.projectfloodlight.openflow.protocol.OFMessage;
 import org.projectfloodlight.openflow.protocol.OFType;
+import org.projectfloodlight.openflow.types.DatapathId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.concurrent.Future;
 
 public class OfBatchService extends AbstractOfHandler implements IFloodlightService {
     private static final Logger log = LoggerFactory.getLogger(OfBatchService.class);
 
-    private final LinkedList<Task> operations = new LinkedList<>();
+    private final HashMap<DatapathId, OfBatchSwitchQueue> pendingMap = new HashMap<>();
 
     private SwitchUtils switchUtils;
-
-    /**
-     * Write prepared OFMessages to switches.
-     */
-    public synchronized void push(org.openkilda.floodlight.command.Command initiator, List<OfRequestResponse> payload)
-            throws OFInstallException {
-        log.debug("Got io request with {} message(s) from {}", payload.size(), initiator);
-
-        OfBatch batch = new OfBatch(switchUtils, payload);
-        operations.addLast(new Task(initiator, batch));
-
-        try {
-            batch.write();
-        } catch (OFInstallException e) {
-            operations.removeLast();
-            throw e;
-        }
-    }
 
     public void init(FloodlightModuleContext moduleContext) {
         switchUtils = new SwitchUtils(moduleContext.getServiceImpl(IOFSwitchService.class));
         activateSubscription(moduleContext, OFType.ERROR, OFType.BARRIER_REPLY);
     }
 
+    /**
+     * Write prepared OFMessages to switches.
+     */
+    public Future<OfBatchResult> write(List<OfRequestResponse> payload) {
+        log.debug("New OF batch request with {} message(s)", payload.size());
+
+        OfBatch batch = new OfBatch(switchUtils, payload);
+
+        synchronized (pendingMap) {
+            for (DatapathId dpId : batch.getAffectedSwitches()) {
+                OfBatchSwitchQueue queue = pendingMap.computeIfAbsent(dpId, OfBatchSwitchQueue::new);
+                queue.add(batch);
+            }
+        }
+        batch.write();
+        return batch.getFuture();
+    }
+
     @Override
     public boolean handle(IOFSwitch sw, OFMessage message, FloodlightContext context) {
-        boolean isHandled = false;
+        DatapathId dpId = sw.getId();
+        synchronized (pendingMap) {
+            OfBatchSwitchQueue queue = pendingMap.get(dpId);
+            if (queue == null) {
+                return false;
+            }
 
-        Task completed = null;
-        synchronized (this) {
-            for (ListIterator<Task> iterator = operations.listIterator(); iterator.hasNext(); ) {
-                Task task = iterator.next();
-
-                if (!task.batch.handleResponse(sw.getId(), message)) {
-                    continue;
-                }
-
-                log.debug("Message (xId:{}) have matched one of pending io batches", message.getXid());
-                isHandled = true;
-                if (task.batch.isComplete()) {
-                    iterator.remove();
-                    completed = task;
-                }
-                break;
+            if (!queue.receiveResponse(message)) {
+                return false;
+            }
+            if (queue.isGarbage()) {
+                pendingMap.remove(dpId);
             }
         }
 
-        if (completed != null) {
-            log.debug("Send complete signal to pending command: {}", completed.command);
-            completed.command.ioComplete(completed.batch.getBatch(), completed.batch.isErrors());
-        }
-
-        return isHandled;
-    }
-
-    private class Task {
-        final org.openkilda.floodlight.command.Command command;
-        final OfBatch batch;
-
-        Task(org.openkilda.floodlight.command.Command command, OfBatch batch) {
-            this.command = command;
-            this.batch = batch;
-        }
+        return true;
     }
 }

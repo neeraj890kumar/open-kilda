@@ -13,18 +13,19 @@
  *   limitations under the License.
  */
 
-package org.openkilda.floodlight.command;
+package org.openkilda.floodlight.error;
 
-public abstract class Command {
-    private final CommandContext context;
+import org.openkilda.floodlight.model.OfBatchResult;
 
-    public Command(CommandContext context) {
-        this.context = context;
+public class OfBatchWriteException extends AbstractException {
+    private final OfBatchResult result;
+
+    public OfBatchWriteException(OfBatchResult result) {
+        super("There is an error during OF write");
+        this.result = result;
     }
 
-    public abstract void execute();
-
-    protected CommandContext getContext() {
-        return context;
+    public OfBatchResult getResult() {
+        return result;
     }
 }

@@ -62,7 +62,7 @@ public class VerificationSendCommandTest extends AbstractVerificationCommandTest
 
         Capture<List<OfRequestResponse>> capturePushPayload = newCapture(CaptureType.LAST);
 
-        ioService.push(eq(subject), capture(capturePushPayload));
+        ioService.write(eq(subject), capture(capturePushPayload));
         expectLastCall().once();
         replay(ioService);
 

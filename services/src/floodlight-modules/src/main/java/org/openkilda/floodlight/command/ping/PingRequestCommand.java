@@ -17,11 +17,10 @@ package org.openkilda.floodlight.command.ping;
 
 import org.openkilda.floodlight.command.CommandContext;
 import org.openkilda.floodlight.error.InsufficientCapabilitiesException;
+import org.openkilda.floodlight.model.OfRequestResponse;
 import org.openkilda.floodlight.model.PingData;
 import org.openkilda.floodlight.service.PingService;
 import org.openkilda.floodlight.service.batch.OfBatchService;
-import org.openkilda.floodlight.service.batch.OfRequestResponse;
-import org.openkilda.floodlight.switchmanager.OFInstallException;
 import org.openkilda.messaging.floodlight.request.PingRequest;
 import org.openkilda.messaging.model.Ping;
 import org.openkilda.messaging.model.Ping.Errors;
@@ -44,6 +43,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 public class PingRequestCommand extends Abstract {
     private static Logger log = LoggerFactory.getLogger(PingRequestCommand.class);
@@ -52,7 +52,7 @@ public class PingRequestCommand extends Abstract {
 
     private final IOFSwitchService switchService;
 
-    private final OfBatchService ioService;
+    private final OfBatchService batchService;
 
     public PingRequestCommand(CommandContext context, PingRequest request) {
         super(context);
@@ -61,7 +61,7 @@ public class PingRequestCommand extends Abstract {
 
         FloodlightModuleContext moduleContext = context.getModuleContext();
         switchService = moduleContext.getServiceImpl(IOFSwitchService.class);
-        ioService = moduleContext.getServiceImpl(OfBatchService.class);
+        batchService = moduleContext.getServiceImpl(OfBatchService.class);
     }
 
     @Override
@@ -73,16 +73,6 @@ public class PingRequestCommand extends Abstract {
             sendErrorResponse(ping.getPingId(), Errors.NOT_CAPABLE);
         }
     }
-
-    @Override
-    public void ioComplete(List<OfRequestResponse> payload, boolean isError) {
-        if (!isError) {
-            return;
-        }
-
-        sendErrorResponse(ping.getPingId(), Ping.Errors.WRITE_FAILURE);
-    }
-
 
     private void validate() throws InsufficientCapabilitiesException {
         final String destId = ping.getDest().getSwitchDpId();
@@ -115,9 +105,14 @@ public class PingRequestCommand extends Abstract {
         OFMessage message = makePacketOut(sw, packet.serialize());
 
         try {
-            ioService.push(this, ImmutableList.of(new OfRequestResponse(sw.getId(), message)));
-        } catch (OFInstallException e) {
+            batchService.write(ImmutableList.of(new OfRequestResponse(sw.getId(), message)))
+                    .get();
+        } catch (ExecutionException e) {
             sendErrorResponse(ping.getPingId(), Ping.Errors.WRITE_FAILURE);
+            log.error(e.getCause().getMessage());
+        } catch (InterruptedException e) {
+            sendErrorResponse(ping.getPingId(), Ping.Errors.WRITE_FAILURE);
+            log.error("Error during SW write: %s", e.getMessage());
         }
     }
 
