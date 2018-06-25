@@ -16,7 +16,7 @@
 package org.openkilda.wfm.topology.flow.bolts;
 
 import org.openkilda.messaging.Utils;
-import org.openkilda.messaging.info.flow.UniFlowVerificationResponse;
+import org.openkilda.messaging.info.flow.UniFlowPingResponse;
 import org.openkilda.wfm.AbstractBolt;
 import org.openkilda.wfm.topology.AbstractTopology;
 import org.openkilda.wfm.topology.flow.ComponentType;
@@ -65,18 +65,18 @@ public class VerificationBolt extends AbstractBolt {
     }
 
     private void consumePingReply(Tuple input) {
-        UniFlowVerificationResponse response = fetchUniFlowResponse(input);
+        UniFlowPingResponse response = fetchUniFlowResponse(input);
         Values payload = new Values(response.getFlowId(), response, null);
         getOutput().emit(STREAM_ID_PROXY, input, payload);
     }
 
-    private UniFlowVerificationResponse fetchUniFlowResponse(Tuple input) {
-        UniFlowVerificationResponse value;
+    private UniFlowPingResponse fetchUniFlowResponse(Tuple input) {
+        UniFlowPingResponse value;
         try {
-            value = (UniFlowVerificationResponse) input.getValueByField(SpeakerBolt.FIELD_ID_PAYLOAD);
+            value = (UniFlowPingResponse) input.getValueByField(SpeakerBolt.FIELD_ID_PAYLOAD);
         } catch (ClassCastException e) {
             throw new IllegalArgumentException(
-                    String.format("Can't deserialize into %s", UniFlowVerificationResponse.class.getName()), e);
+                    String.format("Can't deserialize into %s", UniFlowPingResponse.class.getName()), e);
         }
 
         return value;

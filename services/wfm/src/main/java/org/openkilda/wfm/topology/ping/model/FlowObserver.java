@@ -23,35 +23,35 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
-public class FlowStatus {
-    private final PingStatus.PingStatusBuilder pingStatusBuilder;
+public class FlowObserver {
+    private final PingObserver.PingObserverBuilder pingStatusBuilder;
 
     private PingReport.Status currentStatus = null;
-    private final HashMap<Long, PingStatus> pingReports = new HashMap<>();
+    private final HashMap<Long, PingObserver> observations = new HashMap<>();
 
-    public FlowStatus(PingStatus.PingStatusBuilder pingStatusBuilder) {
+    public FlowObserver(PingObserver.PingObserverBuilder pingStatusBuilder) {
         this.pingStatusBuilder = pingStatusBuilder;
     }
 
     public void update(PingContext pingContext) {
-        PingStatus pingStatus = pingReports.computeIfAbsent(pingContext.getCookie(), k -> pingStatusBuilder.build());
+        PingObserver pingObserver = observations.computeIfAbsent(pingContext.getCookie(), k -> pingStatusBuilder.build());
 
         long timestamp = pingContext.getTimestamp();
         if (pingContext.isError()) {
-            pingStatus.markFailed(timestamp);
+            pingObserver.markFailed(timestamp);
         } else {
-            pingStatus.markOperational(timestamp);
+            pingObserver.markOperational(timestamp);
         }
     }
 
     public void remove(long cookie) {
-        pingReports.remove(cookie);
+        observations.remove(cookie);
     }
 
     public PingReport.Status timeTick(long timestamp) {
         PingReport.Status status = PingReport.Status.OPERATIONAL;
-        for (Iterator<PingStatus> iterator = pingReports.values().iterator(); iterator.hasNext(); ) {
-            final PingStatus value = iterator.next();
+        for (Iterator<PingObserver> iterator = observations.values().iterator(); iterator.hasNext(); ) {
+            final PingObserver value = iterator.next();
 
             if (value.isGarbage()) {
                 iterator.remove();
@@ -74,13 +74,13 @@ public class FlowStatus {
     }
 
     public List<Long> getFailedCookies() {
-        return pingReports.entrySet().stream()
+        return observations.entrySet().stream()
                 .filter(e -> e.getValue().isFail())
                 .map(Entry::getKey)
                 .collect(Collectors.toList());
     }
 
     public boolean isGarbage() {
-        return pingReports.size() == 0;
+        return observations.size() == 0;
     }
 }

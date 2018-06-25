@@ -31,7 +31,7 @@ import java.util.UUID;
 public class PingContext implements Serializable {
     public enum Kinds {
         PERIODIC,
-        MANUAL
+        ON_DEMAND
     }
 
     private Kinds kind;
@@ -39,6 +39,7 @@ public class PingContext implements Serializable {
 
     private BidirectionalFlow flow;
     private FlowDirection direction;
+    private Long timeout;
 
     private Ping ping;
 

@@ -22,7 +22,7 @@ import org.openkilda.floodlight.command.CommandContext;
 import org.openkilda.floodlight.kafka.KafkaMessageProducer;
 import org.openkilda.floodlight.service.PingService;
 import org.openkilda.floodlight.service.batch.OfBatchService;
-import org.openkilda.messaging.command.flow.FlowVerificationRequest;
+import org.openkilda.messaging.command.flow.FlowPingRequest;
 import org.openkilda.messaging.command.flow.UniFlowVerificationRequest;
 import org.openkilda.messaging.model.Flow;
 import org.openkilda.messaging.model.FlowDirection;
@@ -83,7 +83,7 @@ public abstract class AbstractVerificationCommandTest {
                 flowId, 1000, false, "unit test flow",
                 sourceSwitchId.toString(), sourcePort, 0x100,
                 destSwitchId.toString(), destPort, 0x101);
-        FlowVerificationRequest request = new FlowVerificationRequest(flowId, 1000);
+        FlowPingRequest request = new FlowPingRequest(flowId, 1000);
         return new UniFlowVerificationRequest(request, flow, FlowDirection.FORWARD);
     }
 }

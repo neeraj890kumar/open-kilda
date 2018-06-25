@@ -39,6 +39,10 @@ public interface KafkaTopicsConfig {
     @Default("kilda.flow")
     String getFlowTopic();
 
+    @Key("flow.status")
+    @Default("kilda.flow.status")
+    String getFlowStatusTopic();
+
     @Key("health.check")
     @Default("kilda.health.check")
     String getHealthCheckTopic();

@@ -51,6 +51,18 @@ public interface PingTopologyConfig extends AbstractTopologyConfig {
         return getKafkaTopics().getSpeakerTopic();
     }
 
+    default String getKafkaNorthboundTopic() {
+        return getKafkaTopics().getNorthboundTopic();
+    }
+
+    default String getKafkaFlowStatusTopic() {
+        return getKafkaTopics().getFlowStatusTopic();
+    }
+
+    default String getKafkaStatsTopic() {
+        return getKafkaTopics().getStatsTopic();
+    }
+
     @Configuration
     @Key("flow.ping")
     interface PingConfig {

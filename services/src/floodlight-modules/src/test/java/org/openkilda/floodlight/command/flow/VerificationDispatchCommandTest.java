@@ -29,7 +29,7 @@ import org.openkilda.messaging.command.flow.UniFlowVerificationRequest;
 import org.openkilda.messaging.info.InfoData;
 import org.openkilda.messaging.info.InfoMessage;
 import org.openkilda.messaging.info.flow.FlowVerificationErrorCode;
-import org.openkilda.messaging.info.flow.UniFlowVerificationResponse;
+import org.openkilda.messaging.info.flow.UniFlowPingResponse;
 
 import org.easymock.Capture;
 import org.junit.Assert;
@@ -61,8 +61,8 @@ public class VerificationDispatchCommandTest extends AbstractVerificationCommand
         Assert.assertTrue(message instanceof InfoMessage);
 
         InfoData rawPayload = ((InfoMessage) message).getData();
-        Assert.assertTrue(rawPayload instanceof UniFlowVerificationResponse);
+        Assert.assertTrue(rawPayload instanceof UniFlowPingResponse);
         Assert.assertEquals(
-                FlowVerificationErrorCode.NOT_CAPABLE, ((UniFlowVerificationResponse) rawPayload).getError());
+                FlowVerificationErrorCode.NOT_CAPABLE, ((UniFlowPingResponse) rawPayload).getError());
     }
 }

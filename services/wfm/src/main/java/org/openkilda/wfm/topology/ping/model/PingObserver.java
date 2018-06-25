@@ -19,7 +19,7 @@ import lombok.Builder;
 import lombok.Data;
 
 @Data
-public class PingStatus {
+public class PingObserver {
     private final long failDelay;
     private final long failReset;
     private final long garbageDelay;
@@ -28,7 +28,7 @@ public class PingStatus {
     private long lastStateTransitionAt = 0L;
 
     @Builder
-    public PingStatus(long failDelay, long failReset) {
+    public PingObserver(long failDelay, long failReset) {
         this.failDelay = failDelay;
         this.failReset = failReset;
         this.garbageDelay = failReset;

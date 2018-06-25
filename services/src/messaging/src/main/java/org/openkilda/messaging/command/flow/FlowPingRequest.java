@@ -22,15 +22,15 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;
 
 @Value
-public class FlowVerificationRequest extends CommandData {
+public class FlowPingRequest extends CommandData {
     @JsonProperty("flow_id")
     private String flowId;
 
     @JsonProperty("timeout")
-    private int timeout;
+    private long timeout;
 
     @JsonCreator
-    public FlowVerificationRequest(
+    public FlowPingRequest(
             @JsonProperty("flow_id") String flowId,
             @JsonProperty("timeout") int timeout) {
         this.flowId = flowId;

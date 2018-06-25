@@ -28,7 +28,7 @@ import org.openkilda.messaging.command.flow.FlowPathRequest;
 import org.openkilda.messaging.command.flow.FlowRerouteRequest;
 import org.openkilda.messaging.command.flow.FlowStatusRequest;
 import org.openkilda.messaging.command.flow.FlowUpdateRequest;
-import org.openkilda.messaging.command.flow.FlowVerificationRequest;
+import org.openkilda.messaging.command.flow.FlowPingRequest;
 import org.openkilda.messaging.command.flow.SynchronizeCacheAction;
 import org.openkilda.messaging.info.InfoMessage;
 import org.openkilda.messaging.info.event.PathNode;
@@ -36,10 +36,10 @@ import org.openkilda.messaging.info.flow.FlowCacheSyncResponse;
 import org.openkilda.messaging.info.flow.FlowInfoData;
 import org.openkilda.messaging.info.flow.FlowOperation;
 import org.openkilda.messaging.info.flow.FlowPathResponse;
+import org.openkilda.messaging.info.flow.FlowPingResponse;
 import org.openkilda.messaging.info.flow.FlowRerouteResponse;
 import org.openkilda.messaging.info.flow.FlowResponse;
 import org.openkilda.messaging.info.flow.FlowStatusResponse;
-import org.openkilda.messaging.info.flow.FlowVerificationResponse;
 import org.openkilda.messaging.info.rule.FlowApplyActions;
 import org.openkilda.messaging.info.rule.FlowEntry;
 import org.openkilda.messaging.info.rule.FlowSetFieldAction;
@@ -796,14 +796,14 @@ public class FlowServiceImpl implements FlowService {
 
     @Override
     public VerificationOutput verifyFlow(String flowId, VerificationInput payload) {
-        FlowVerificationRequest query = new FlowVerificationRequest(flowId, payload.getTimeoutMillis());
+        FlowPingRequest query = new FlowPingRequest(flowId, payload.getTimeoutMillis());
 
         final String correlationId = RequestCorrelationId.getId();
         CommandMessage request = new CommandMessage(query, System.currentTimeMillis(), correlationId, Destination.WFM);
         messageProducer.send(topic, request);
 
         Message message = (Message) messageConsumer.poll(correlationId);
-        FlowVerificationResponse response = (FlowVerificationResponse) validateInfoMessage(
+        FlowPingResponse response = (FlowPingResponse) validateInfoMessage(
                 request, message, correlationId);
 
         return flowMapper.toVerificationOutput(response);

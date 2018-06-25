@@ -27,7 +27,7 @@ import org.openkilda.messaging.command.flow.RemoveFlow;
 import org.openkilda.messaging.error.ErrorMessage;
 import org.openkilda.messaging.info.InfoData;
 import org.openkilda.messaging.info.InfoMessage;
-import org.openkilda.messaging.info.flow.UniFlowVerificationResponse;
+import org.openkilda.messaging.info.flow.UniFlowPingResponse;
 import org.openkilda.messaging.payload.flow.FlowState;
 import org.openkilda.wfm.topology.flow.FlowTopology;
 import org.openkilda.wfm.topology.flow.StreamType;
@@ -159,7 +159,7 @@ public class SpeakerBolt extends BaseRichBolt {
     private void handleInfoMessage(Tuple input, InfoMessage message) {
         InfoData rawPayload = message.getData();
 
-        if (rawPayload instanceof UniFlowVerificationResponse) {
+        if (rawPayload instanceof UniFlowPingResponse) {
             Values proxyData = new Values(rawPayload, message);
             outputCollector.emit(STREAM_VERIFICATION_ID, input, proxyData);
         } else {

@@ -16,11 +16,11 @@
 package org.openkilda.wfm.topology.flow.model;
 
 import org.openkilda.messaging.command.flow.FlowDirection;
-import org.openkilda.messaging.command.flow.FlowVerificationRequest;
+import org.openkilda.messaging.command.flow.FlowPingRequest;
 import org.openkilda.messaging.command.flow.UniFlowVerificationRequest;
+import org.openkilda.messaging.info.flow.FlowPingResponse;
 import org.openkilda.messaging.info.flow.FlowVerificationErrorCode;
-import org.openkilda.messaging.info.flow.FlowVerificationResponse;
-import org.openkilda.messaging.info.flow.UniFlowVerificationResponse;
+import org.openkilda.messaging.info.flow.UniFlowPingResponse;
 import org.openkilda.messaging.model.BidirectionalFlow;
 import org.openkilda.messaging.model.Flow;
 import org.openkilda.wfm.topology.flow.Constants;
@@ -35,15 +35,15 @@ public class VerificationWaitRecord {
 
     private final long createTime;
     private final String correlationId;
-    private final FlowVerificationResponse.FlowVerificationResponseBuilder response;
+    private final FlowPingResponse.FlowVerificationResponseBuilder response;
 
     private final HashMap<UUID, PendingRecord> pendingRequests = new HashMap<>();
 
-    public VerificationWaitRecord(FlowVerificationRequest request, BidirectionalFlow biFlow, String correlationId) {
+    public VerificationWaitRecord(FlowPingRequest request, BidirectionalFlow biFlow, String correlationId) {
         this.createTime = System.currentTimeMillis();
         this.correlationId = correlationId;
 
-        this.response = FlowVerificationResponse.builder();
+        this.response = FlowPingResponse.builder();
         this.response.flowId(biFlow.getFlowId());
 
         addPending(request, biFlow.getForward(), FlowDirection.FORWARD);
@@ -53,7 +53,7 @@ public class VerificationWaitRecord {
     /**
      * Save response for one currently pending request.
      */
-    public boolean consumeResponse(UniFlowVerificationResponse payload) {
+    public boolean consumeResponse(UniFlowPingResponse payload) {
         PendingRecord pending = pendingRequests.remove(payload.getPacketId());
         if (pending == null) {
             return false;
@@ -63,7 +63,7 @@ public class VerificationWaitRecord {
         return true;
     }
 
-    public FlowVerificationResponse produce() {
+    public FlowPingResponse produce() {
         return response.build();
     }
 
@@ -71,11 +71,11 @@ public class VerificationWaitRecord {
      * Mark remaining pending request as failed.
      */
     public void fillPendingWithError(FlowVerificationErrorCode errorCode) {
-        UniFlowVerificationResponse errorResponse;
+        UniFlowPingResponse errorResponse;
         for (UUID packetId : pendingRequests.keySet()) {
             PendingRecord pending = pendingRequests.get(packetId);
 
-            errorResponse = new UniFlowVerificationResponse(pending.request, errorCode);
+            errorResponse = new UniFlowPingResponse(pending.request, errorCode);
             saveUniResponse(pending, errorResponse);
         }
         pendingRequests.clear();
@@ -110,13 +110,13 @@ public class VerificationWaitRecord {
         return correlationId;
     }
 
-    private void addPending(FlowVerificationRequest request, Flow flow, FlowDirection direction) {
+    private void addPending(FlowPingRequest request, Flow flow, FlowDirection direction) {
         UniFlowVerificationRequest payload = new UniFlowVerificationRequest(request, flow, direction);
         PendingRecord pending = new PendingRecord(direction, payload);
         pendingRequests.put(payload.getPacketId(), pending);
     }
 
-    private void saveUniResponse(PendingRecord pending, UniFlowVerificationResponse payload) {
+    private void saveUniResponse(PendingRecord pending, UniFlowPingResponse payload) {
         switch (pending.direction) {
             case FORWARD:
                 response.forward(payload);

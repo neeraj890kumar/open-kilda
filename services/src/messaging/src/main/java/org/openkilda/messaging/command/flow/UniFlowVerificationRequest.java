@@ -79,7 +79,7 @@ public class UniFlowVerificationRequest extends CommandData {
         this.vlanId = vlanId;
     }
 
-    public UniFlowVerificationRequest(FlowVerificationRequest request, Flow flow, FlowDirection direction) {
+    public UniFlowVerificationRequest(FlowPingRequest request, Flow flow, FlowDirection direction) {
         this(
                 null,
                 request.getTimeout(),

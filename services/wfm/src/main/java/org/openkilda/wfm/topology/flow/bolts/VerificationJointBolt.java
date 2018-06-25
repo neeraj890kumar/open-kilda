@@ -19,12 +19,12 @@ import static org.openkilda.messaging.Utils.MAPPER;
 
 import org.openkilda.messaging.Destination;
 import org.openkilda.messaging.command.CommandMessage;
-import org.openkilda.messaging.command.flow.FlowVerificationRequest;
+import org.openkilda.messaging.command.flow.FlowPingRequest;
 import org.openkilda.messaging.command.flow.UniFlowVerificationRequest;
 import org.openkilda.messaging.info.InfoMessage;
+import org.openkilda.messaging.info.flow.FlowPingResponse;
 import org.openkilda.messaging.info.flow.FlowVerificationErrorCode;
-import org.openkilda.messaging.info.flow.FlowVerificationResponse;
-import org.openkilda.messaging.info.flow.UniFlowVerificationResponse;
+import org.openkilda.messaging.info.flow.UniFlowPingResponse;
 import org.openkilda.messaging.model.BidirectionalFlow;
 import org.openkilda.wfm.AbstractBolt;
 import org.openkilda.wfm.topology.AbstractTopology;
@@ -62,8 +62,8 @@ public class VerificationJointBolt extends AbstractBolt {
 
         if (unclassified instanceof BidirectionalFlow) {
             handleRequest(input, (BidirectionalFlow) unclassified);
-        } else if (unclassified instanceof UniFlowVerificationResponse) {
-            handleResponse(input, (UniFlowVerificationResponse) unclassified);
+        } else if (unclassified instanceof UniFlowPingResponse) {
+            handleResponse(input, (UniFlowPingResponse) unclassified);
         } else {
             logger.warn(
                     "Unexpected input {} - is topology changes without code change?",
@@ -75,7 +75,7 @@ public class VerificationJointBolt extends AbstractBolt {
         logger.debug("Handling VERIFICATION request");
 
         CommandMessage message = fetchInputMessage(input);
-        FlowVerificationRequest request = fetchVerificationRequest(message);
+        FlowPingRequest request = fetchVerificationRequest(message);
         VerificationWaitRecord waitRecord = new VerificationWaitRecord(request, biFlow, message.getCorrelationId());
 
         List<UniFlowVerificationRequest> pendingRequests = waitRecord.getPendingRequests();
@@ -100,7 +100,7 @@ public class VerificationJointBolt extends AbstractBolt {
         ongoingVerifications.addLast(waitRecord);
     }
 
-    private void handleResponse(Tuple input, UniFlowVerificationResponse response) {
+    private void handleResponse(Tuple input, UniFlowPingResponse response) {
         logger.debug("Handling VERIFICATION response");
 
         ListIterator<VerificationWaitRecord> iter = ongoingVerifications.listIterator();
@@ -144,10 +144,10 @@ public class VerificationJointBolt extends AbstractBolt {
         return value;
     }
 
-    private FlowVerificationRequest fetchVerificationRequest(CommandMessage message) {
-        FlowVerificationRequest value;
+    private FlowPingRequest fetchVerificationRequest(CommandMessage message) {
+        FlowPingRequest value;
         try {
-            value = (FlowVerificationRequest) message.getData();
+            value = (FlowPingRequest) message.getData();
         } catch (ClassCastException e) {
             throw new IllegalArgumentException(String.format(
                     "Can't fetch flow VERIFICATION request from CommandMessage: %s", e));
@@ -156,7 +156,7 @@ public class VerificationJointBolt extends AbstractBolt {
     }
 
     private void produceResponse(Tuple input, VerificationWaitRecord waitRecord) {
-        FlowVerificationResponse response = waitRecord.produce();
+        FlowPingResponse response = waitRecord.produce();
         InfoMessage northboundMessage = new InfoMessage(
                 response, System.currentTimeMillis(), waitRecord.getCorrelationId());
         getOutput().emit(STREAM_RESPONSE_ID, input, new Values(northboundMessage));

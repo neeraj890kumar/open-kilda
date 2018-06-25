@@ -28,13 +28,9 @@ import org.apache.storm.tuple.Values;
 public class PeriodicResultManager extends ResultManager {
     public static final String BOLT_ID = ComponentId.PERIODIC_RESULT_MANAGER.toString();
 
-    public static final String FIELD_ID_GROUP_ID = "ping_group";
     public static final String FIELD_ID_FLOW_ID = Utils.FLOW_ID;
 
-    public static final Fields STREAM_GROUP_FIELDS = new Fields(FIELD_ID_GROUP_ID, FIELD_ID_PING, FIELD_ID_CONTEXT);
-    public static final String STREAM_GROUP_ID = "grouping";
-
-    public static final Fields STREAM_STATS_FIELDS = new Fields(FIELD_ID_PING_GROUP, FIELD_ID_CONTEXT);
+    public static final Fields STREAM_STATS_FIELDS = new Fields(FIELD_ID_PING, FIELD_ID_CONTEXT);
     public static final String STREAM_STATS_ID = "stats";
 
     public static final Fields STREAM_FAIL_FIELDS = new Fields(FIELD_ID_FLOW_ID, FIELD_ID_PING, FIELD_ID_CONTEXT);
@@ -44,17 +40,15 @@ public class PeriodicResultManager extends ResultManager {
     public static final String STREAM_BLACKLIST_ID = "blacklist";
 
     @Override
-    protected void handleGroup(Tuple input) throws PipelineException {
-        Values output = new Values(pullPingGroup(input), pullContext(input));
-        getOutput().emit(STREAM_STATS_ID, input, output);
+    protected void handle(Tuple input, PingContext pingContext) throws AbstractException {
+        updateFailReporter(input, pingContext);
+        super.handle(input, pingContext);
     }
 
     @Override
-    protected void handle(Tuple input, PingContext pingContext) throws AbstractException {
-        updateFailReporter(input, pingContext);
-        collectGroup(input, pingContext);
-
-        super.handle(input, pingContext);
+    protected void handleSuccess(Tuple input, PingContext pingContext) throws PipelineException {
+        Values output = new Values(pingContext, pullContext(input));
+        getOutput().emit(STREAM_STATS_ID, input, output);
     }
 
     @Override
@@ -65,11 +59,6 @@ public class PeriodicResultManager extends ResultManager {
         }
     }
 
-    private void collectGroup(Tuple input, PingContext pingContext) throws PipelineException {
-        Values output = new Values(pingContext.getGroup(), pingContext, pullContext(input));
-        getOutput().emit(STREAM_GROUP_ID, input, output);
-    }
-
     private void updateFailReporter(Tuple input, PingContext pingContext) throws PipelineException {
         Values output = new Values(pingContext.getFlowId(), pingContext, pullContext(input));
         getOutput().emit(STREAM_FAIL_ID, input, output);
@@ -77,7 +66,6 @@ public class PeriodicResultManager extends ResultManager {
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer outputManager) {
-        outputManager.declareStream(STREAM_GROUP_ID, STREAM_GROUP_FIELDS);
         outputManager.declareStream(STREAM_STATS_ID, STREAM_STATS_FIELDS);
         outputManager.declareStream(STREAM_FAIL_ID, STREAM_FAIL_FIELDS);
         outputManager.declareStream(STREAM_BLACKLIST_ID, STREAM_BLACKLIST_FIELDS);

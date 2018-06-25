@@ -16,14 +16,14 @@
 package org.openkilda.northbound.converter;
 
 import org.openkilda.messaging.info.flow.FlowVerificationErrorCode;
-import org.openkilda.messaging.info.flow.FlowVerificationResponse;
+import org.openkilda.messaging.info.flow.FlowPingResponse;
 import org.openkilda.northbound.dto.flows.VerificationOutput;
 
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
 public interface FlowMapper {
-    VerificationOutput toVerificationOutput(FlowVerificationResponse response);
+    VerificationOutput toVerificationOutput(FlowPingResponse response);
 
     /**
      * Translate Java's error code(enum) into human readable string.

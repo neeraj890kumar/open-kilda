@@ -53,7 +53,7 @@ public class ResultDispatcher extends Abstract {
             case PERIODIC:
                 value = STREAM_PERIODIC_ID;
                 break;
-            case MANUAL:
+            case ON_DEMAND:
                 value = STREAM_MANUAL_ID;
                 break;
 

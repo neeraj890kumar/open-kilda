@@ -18,29 +18,46 @@ package org.openkilda.messaging.info.flow;
 import org.openkilda.messaging.info.InfoData;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Value;
 
 @Value
 @Builder
-public class FlowVerificationResponse extends InfoData {
+public class FlowPingResponse extends InfoData {
     @JsonProperty("flow_id")
     private String flowId;
 
     @JsonProperty("forward")
-    private UniFlowVerificationResponse forward;
+    private UniFlowPingResponse forward;
 
     @JsonProperty("reverse")
-    private UniFlowVerificationResponse reverse;
+    private UniFlowPingResponse reverse;
+
+    @JsonProperty("error")
+    private String error;
 
     @JsonCreator
-    public FlowVerificationResponse(
+    public FlowPingResponse(
             @JsonProperty("flow_id") String flowId,
-            @JsonProperty("forward") UniFlowVerificationResponse forward,
-            @JsonProperty("reverse") UniFlowVerificationResponse reverse) {
+            @JsonProperty("forward") UniFlowPingResponse forward,
+            @JsonProperty("reverse") UniFlowPingResponse reverse,
+            @JsonProperty("error") String error) {
         this.flowId = flowId;
         this.forward = forward;
         this.reverse = reverse;
+        this.error = error;
+    }
+
+    public FlowPingResponse(String flowId, String errorMessage) {
+        this(flowId, null, null, errorMessage);
+    }
+
+    @JsonIgnore
+    public boolean isError() {
+        return (error != null)
+                || ((forward != null) && forward.getError() != null)
+                || ((reverse != null) && reverse.getError() != null);
     }
 }

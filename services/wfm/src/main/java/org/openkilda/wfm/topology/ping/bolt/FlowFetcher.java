@@ -16,12 +16,16 @@
 package org.openkilda.wfm.topology.ping.bolt;
 
 import org.openkilda.messaging.Utils;
+import org.openkilda.messaging.command.flow.FlowPingRequest;
+import org.openkilda.messaging.info.flow.FlowPingResponse;
 import org.openkilda.messaging.model.BidirectionalFlow;
+import org.openkilda.messaging.model.Flow;
 import org.openkilda.pce.provider.PathComputer;
 import org.openkilda.pce.provider.PathComputerAuth;
 import org.openkilda.wfm.CommandContext;
 import org.openkilda.wfm.error.AbstractException;
 import org.openkilda.wfm.error.PipelineException;
+import org.openkilda.wfm.share.utils.FlowCollector;
 import org.openkilda.wfm.share.utils.PathComputerFlowFetcher;
 import org.openkilda.wfm.topology.ping.model.FlowRef;
 import org.openkilda.wfm.topology.ping.model.FlowsHeap;
@@ -39,11 +43,16 @@ public class FlowFetcher extends Abstract {
 
     public static final String FIELD_ID_FLOW_ID = Utils.FLOW_ID;
     public static final String FIELD_FLOW_REF = "flow_ref";
+    public static final String FIELD_ID_ON_DEMAND_RESPONSE = NorthboundEncoder.FIELD_ID_PAYLOAD;
 
     public static final Fields STREAM_FIELDS = new Fields(FIELD_ID_FLOW_ID, FIELD_ID_PING, FIELD_ID_CONTEXT);
 
     public static final Fields STREAM_EXPIRE_CACHE_FIELDS = new Fields(FIELD_FLOW_REF, FIELD_ID_CONTEXT);
     public static final String STREAM_EXPIRE_CACHE_ID = "expire_cache";
+
+    public static final Fields STREAM_ON_DEMAND_RESPONSE_FIELDS = new Fields(
+            FIELD_ID_ON_DEMAND_RESPONSE, FIELD_ID_CONTEXT);
+    public static final String STREAM_ON_DEMAND_RESPONSE_ID = "on_demand_response";
 
     private final PathComputerAuth pathComputerAuth;
     private PathComputer pathComputer = null;
@@ -59,6 +68,8 @@ public class FlowFetcher extends Abstract {
 
         if (MonotonicTick.BOLT_ID.equals(component)) {
             handleTimerTrigger(input);
+        } else if (InputRouter.BOLT_ID.equals(component)) {
+            handleOnDemandRequest(input);
         } else {
             unhandledInput(input);
         }
@@ -68,18 +79,48 @@ public class FlowFetcher extends Abstract {
         PathComputerFlowFetcher fetcher = new PathComputerFlowFetcher(pathComputer);
 
         final CommandContext commandContext = pullContext(input);
-        final OutputCollector collector = getOutput();
         final FlowsHeap heap = new FlowsHeap();
         for (BidirectionalFlow flow : fetcher.getFlows()) {
             PingContext pingContext = new PingContext(Kinds.PERIODIC, flow);
-            Values output = new Values(pingContext.getFlowId(), pingContext, commandContext);
-            collector.emit(input, output);
+            emit(input, pingContext, commandContext);
 
             heap.add(flow);
         }
 
         emitCacheExpire(input, commandContext, heap);
         flowsHeap = heap;
+    }
+
+    private void handleOnDemandRequest(Tuple input) throws PipelineException {
+        FlowPingRequest request = pullOnDemandRequest(input);
+        BidirectionalFlow flow;
+        try {
+            FlowCollector collector = new FlowCollector();
+            for (Flow halfFlow : pathComputer.getFlow(request.getFlowId())) {
+                collector.add(halfFlow);
+            }
+            flow = collector.make();
+        } catch (IllegalArgumentException e) {
+            emitOnDemandResponse(input, request, String.format("Can't read flow %s: %s", request.getFlowId(), e));
+            return;
+        }
+
+        PingContext pingContext = new PingContext(Kinds.ON_DEMAND, flow).toBuilder()
+                .timeout(request.getTimeout())
+                .build();
+        emit(input, pingContext, pullContext(input));
+    }
+
+    private void emit(Tuple input, PingContext pingContext, CommandContext commandContext) {
+        Values output = new Values(pingContext.getFlowId(), pingContext, commandContext);
+        getOutput().emit(input, output);
+    }
+
+    private void emitOnDemandResponse(Tuple input, FlowPingRequest request, String errorMessage)
+            throws PipelineException {
+        FlowPingResponse response = new FlowPingResponse(request.getFlowId(), errorMessage);
+        Values output = new Values(response, pullContext(input));
+        getOutput().emit(STREAM_ON_DEMAND_RESPONSE_ID, input, output);
     }
 
     private void emitCacheExpire(Tuple input, CommandContext commandContext, FlowsHeap heap) {
@@ -90,10 +131,15 @@ public class FlowFetcher extends Abstract {
         }
     }
 
+    private FlowPingRequest pullOnDemandRequest(Tuple input) throws PipelineException {
+        return pullValue(input, InputRouter.FIELD_ID_PING_REQUEST, FlowPingRequest.class);
+    }
+
     @Override
     public void declareOutputFields(OutputFieldsDeclarer outputManager) {
         outputManager.declare(STREAM_FIELDS);
         outputManager.declareStream(STREAM_EXPIRE_CACHE_ID, STREAM_EXPIRE_CACHE_FIELDS);
+        outputManager.declareStream(STREAM_ON_DEMAND_RESPONSE_ID, STREAM_ON_DEMAND_RESPONSE_FIELDS);
     }
 
     @Override

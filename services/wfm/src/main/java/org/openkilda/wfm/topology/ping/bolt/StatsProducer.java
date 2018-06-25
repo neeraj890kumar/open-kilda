@@ -19,9 +19,6 @@ import org.openkilda.messaging.info.Datapoint;
 import org.openkilda.messaging.model.PingMeters;
 import org.openkilda.wfm.error.AbstractException;
 import org.openkilda.wfm.error.PipelineException;
-import org.openkilda.wfm.error.WorkflowException;
-import org.openkilda.wfm.topology.ping.model.Group;
-import org.openkilda.wfm.topology.ping.model.OperationalStats;
 import org.openkilda.wfm.topology.ping.model.PingContext;
 
 import org.apache.storm.topology.OutputFieldsDeclarer;
@@ -31,56 +28,22 @@ import org.apache.storm.tuple.Values;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 public class StatsProducer extends Abstract {
     public static final String BOLT_ID = ComponentId.STATS_PRODUCER.toString();
 
-    public static final String FIELD_ID_STATS_RECORD = "stats";
+    public static final String FIELD_ID_STATS_DATAPOINT = OtsdbEncoder.FIELD_ID_STATS_DATAPOINT;
 
-    public static final Fields STREAM_FIELDS = new Fields(FIELD_ID_STATS_RECORD, FIELD_ID_CONTEXT);
+    public static final Fields STREAM_FIELDS = new Fields(FIELD_ID_STATS_DATAPOINT, FIELD_ID_CONTEXT);
 
     @Override
     protected void handleInput(Tuple input) throws AbstractException {
-        Group group = pullPingGroup(input);
+        PingContext pingContext = pullPingContext(input);
 
-        validateGroup(input, group);
-        String flowId = extractFlowId(input, group);
-        produceStats(input, flowId, group);
-    }
-
-    private void validateGroup(Tuple input, Group group) throws WorkflowException {
-        int expectRecords = 2;
-        final int actualRecords = group.getRecords().size();
-        if (actualRecords != expectRecords) {
-            final String details = String.format("expect %d ping records, got %d", expectRecords, actualRecords);
-            throw new WorkflowException(this, input, details);
-        }
-    }
-
-    private String extractFlowId(Tuple input, Group group) throws WorkflowException {
-        Set<String> idCollection = group.getFlowId();
-        if (1 != idCollection.size()) {
-            final String details = String.format(
-                    "Expect ping data for exact 1 flow, got %d flowId", idCollection.size());
-            throw new WorkflowException(this, input, details);
-        }
-        return idCollection.iterator().next();
-    }
-
-    private void produceStats(Tuple input, String flowId, Group group) throws PipelineException {
         HashMap<String, String> tags = new HashMap<>();
-        tags.put("flowid", flowId);
+        tags.put("flowid", pingContext.getFlowId());
 
-        OperationalStats operational = new OperationalStats();
-        for (PingContext pingContext : group.getRecords()) {
-            operational.collect(pingContext);
-            if (! pingContext.isError()) {
-                produceMetersStats(input, new HashMap<>(tags), pingContext);
-            }
-        }
-
-        produceOperationalStats(input, new HashMap<>(tags), operational);
+        produceMetersStats(input, tags, pingContext);
     }
 
     private void produceMetersStats(Tuple input, Map<String, String> tags, PingContext pingContext)
@@ -90,12 +53,6 @@ public class StatsProducer extends Abstract {
         PingMeters meters = pingContext.getMeters();
         Datapoint datapoint = new Datapoint(
                 "pen.flow.latency", pingContext.getTimestamp(), tags, meters.getNetworkLatency());
-        emit(input, datapoint);
-    }
-
-    private void produceOperationalStats(Tuple input, Map<String, String> tags, OperationalStats stats)
-            throws PipelineException {
-        Datapoint datapoint = new Datapoint("pen.flow.operational", stats.getTimestamp(), tags, stats.calculate());
         emit(input, datapoint);
     }
 

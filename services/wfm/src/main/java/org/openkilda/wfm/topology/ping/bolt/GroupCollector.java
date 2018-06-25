@@ -35,7 +35,7 @@ public class GroupCollector extends Abstract {
 
     public static final Fields STREAM_FIELDS = new Fields(FIELD_ID_PING_GROUP, FIELD_ID_CONTEXT);
 
-    public static final String STREAM_PERIODIC_ID = "periodic.ping";
+    public static final String STREAM_ON_DEMAND_ID = "periodic.ping";
 
     private long expireDelay;
 
@@ -57,7 +57,7 @@ public class GroupCollector extends Abstract {
         String component = input.getSourceComponent();
         if (MonotonicTick.BOLT_ID.equals(component)) {
             expire(input);
-        } else if (PeriodicResultManager.BOLT_ID.equals(component)) {
+        } else if (OnDemandResultManager.BOLT_ID.equals(component)) {
             collect(input);
         } else {
             unhandledInput(input);
@@ -102,8 +102,8 @@ public class GroupCollector extends Abstract {
     private String routeBack(Tuple input) throws WorkflowException {
         String component = input.getSourceComponent();
         String stream;
-        if (PeriodicResultManager.BOLT_ID.equals(component)) {
-            stream = STREAM_PERIODIC_ID;
+        if (OnDemandResultManager.BOLT_ID.equals(component)) {
+            stream = STREAM_ON_DEMAND_ID;
         } else {
             final String details = String.format(
                     "there is no route back from %s to %s", getClass().getCanonicalName(), component);
@@ -114,6 +114,6 @@ public class GroupCollector extends Abstract {
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer outputManager) {
-        outputManager.declareStream(STREAM_PERIODIC_ID, STREAM_FIELDS);
+        outputManager.declareStream(STREAM_ON_DEMAND_ID, STREAM_FIELDS);
     }
 }

@@ -32,8 +32,6 @@ import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
 
-import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -47,10 +45,10 @@ public class TimeoutManager extends Abstract {
     public static final Fields STREAM_REQUEST_FIELDS = new Fields(FIELD_ID_PAYLOAD, FIELD_ID_CONTEXT);
     public static final String STREAM_REQUEST_ID = "request";
 
-    public static final Fields STREAM_RESPONSE_FIELDS = new Fields(); // TODO
+    public static final Fields STREAM_RESPONSE_FIELDS = new Fields(FIELD_ID_FLOW_ID, FIELD_ID_PING, FIELD_ID_CONTEXT);
     public static final String STREAM_RESPONSE_ID = "response";
 
-    public static final Fields STREAM_TIMEOUT_FIELDS = new Fields(FIELD_ID_FLOW_ID, FIELD_ID_PING, FIELD_ID_CONTEXT);
+    public static final Fields STREAM_TIMEOUT_FIELDS = STREAM_RESPONSE_FIELDS;
     public static final String STREAM_TIMEOUT_ID = "timeout";
 
     private final long pingTimeout;
@@ -110,9 +108,9 @@ public class TimeoutManager extends Abstract {
 
     private void handleResponse(Tuple input) throws PipelineException {
         PingResponse response = pullPingResponse(input);
-        TimeoutDescriptor descriptor = pendingPings.remove(response.getPing().getPingId());
+        TimeoutDescriptor descriptor = pendingPings.remove(response.getPingId());
         if (descriptor == null) {
-            log.warn("There is no pending request matching response {}", response.getPing());
+            log.warn("There is no pending request matching ping response {}", response.getPingId());
         } else {
             cancelTimeout(descriptor);
             emitResponse(input, descriptor, response);
@@ -120,7 +118,12 @@ public class TimeoutManager extends Abstract {
     }
 
     private void scheduleTimeout(PingContext pingContext, CommandContext commandContext) {
-        long expireAt = System.currentTimeMillis() + pingTimeout;
+        long expireAt = System.currentTimeMillis();
+        if (pingContext.getTimestamp() != null) {
+            expireAt += pingContext.getTimeout();
+        } else {
+            expireAt += pingTimeout;
+        }
 
         TimeoutDescriptor descriptor = new TimeoutDescriptor(expireAt, pingContext, commandContext);
         pendingPings.put(pingContext.getPingId(), descriptor);

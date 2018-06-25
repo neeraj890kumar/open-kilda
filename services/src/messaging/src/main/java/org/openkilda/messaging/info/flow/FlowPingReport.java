@@ -13,8 +13,23 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.ping.bolt;
+package org.openkilda.messaging.info.flow;
 
-public class ManualResultManager extends ResultManager {
-    public static final String BOLT_ID = ComponentId.MANUAL_RESULT_MANAGER.toString();
+import org.openkilda.messaging.info.InfoData;
+import org.openkilda.messaging.model.PingReport;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Value;
+
+@Value
+public class FlowPingReport extends InfoData {
+    @JsonProperty("report")
+    private PingReport report;
+
+    @JsonCreator
+    public FlowPingReport(
+            @JsonProperty("report") PingReport report) {
+        this.report = report;
+    }
 }

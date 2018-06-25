@@ -22,13 +22,13 @@ import org.junit.Test;
 
 import java.io.IOException;
 
-public class FlowVerificationRequestTest {
+public class FlowPingRequestTest {
     @Test
     public void sterilisationRoundTripTest() throws IOException {
-        FlowVerificationRequest source = new FlowVerificationRequest("flowId", 5000);
+        FlowPingRequest source = new FlowPingRequest("flowId", 5000);
 
         String encoded = Utils.MAPPER.writeValueAsString(source);
-        FlowVerificationRequest decoded = Utils.MAPPER.readValue(encoded, FlowVerificationRequest.class);
+        FlowPingRequest decoded = Utils.MAPPER.readValue(encoded, FlowPingRequest.class);
 
         Assert.assertEquals(
                 String.format("%s object have been mangled in serialisation/deserialization loop",

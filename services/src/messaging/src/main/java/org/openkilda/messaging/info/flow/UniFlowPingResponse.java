@@ -15,8 +15,8 @@
 
 package org.openkilda.messaging.info.flow;
 
-import org.openkilda.messaging.command.flow.UniFlowVerificationRequest;
 import org.openkilda.messaging.info.InfoData;
+import org.openkilda.messaging.model.Ping;
 import org.openkilda.messaging.model.Ping.Errors;
 import org.openkilda.messaging.model.PingMeters;
 
@@ -32,7 +32,7 @@ import java.util.UUID;
 @Value
 @JsonSerialize
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class UniFlowVerificationResponse extends InfoData {
+public class UniFlowPingResponse extends InfoData {
     @JsonProperty("ping_success")
     private boolean pingSuccess;
 
@@ -42,37 +42,27 @@ public class UniFlowVerificationResponse extends InfoData {
     @JsonProperty("measures")
     private PingMeters measures;
 
-    @JsonProperty("request")
-    private UniFlowVerificationRequest request;
+    @JsonProperty("ping")
+    private Ping ping;
 
     @JsonCreator
-    public UniFlowVerificationResponse(
+    public UniFlowPingResponse(
             @JsonProperty("ping_success") boolean pingSuccess,
             @JsonProperty("error") Errors error,
-            @JsonProperty("network_latency") PingMeters measures,
-            @JsonProperty("request") UniFlowVerificationRequest request) {
+            @JsonProperty("measures") PingMeters measures,
+            @JsonProperty("ping") Ping ping) {
         this.pingSuccess = pingSuccess;
         this.error = error;
         this.measures = measures;
-        this.request = request;
+        this.ping = ping;
     }
 
-    public UniFlowVerificationResponse(UniFlowVerificationRequest request, PingMeters measures) {
-        this(true, null, measures, request);
-    }
-
-    public UniFlowVerificationResponse(
-            UniFlowVerificationRequest request, Errors error) {
-        this(false, error, null, request);
-    }
-
-    @JsonIgnore
-    public String getFlowId() {
-        return getRequest().getFlowId();
+    public UniFlowPingResponse(Ping ping, PingMeters measures, Ping.Errors error) {
+        this(error == null, error, measures, ping);
     }
 
     @JsonIgnore
     public UUID getPacketId() {
-        return getRequest().getPacketId();
+        return getPing().getPingId();
     }
 }

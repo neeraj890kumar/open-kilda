@@ -16,7 +16,6 @@
 package org.openkilda.wfm.topology.ping.bolt;
 
 import org.openkilda.messaging.floodlight.response.PingResponse;
-import org.openkilda.wfm.CommandContext;
 import org.openkilda.wfm.error.AbstractException;
 import org.openkilda.wfm.error.PipelineException;
 import org.openkilda.wfm.topology.ping.model.PingContext;
@@ -54,8 +53,8 @@ public class PingRouter extends Abstract {
             routePingProducer(input);
         } else if (Blacklist.BOLT_ID.equals(component)) {
             routeBlacklist(input);
-        } else if (SpeakerDecoder.BOLT_ID.equals(component)) {
-            routeSpeakerDecoder(input);
+        } else if (InputRouter.BOLT_ID.equals(component)) {
+            routePingResponse(input);
         } else if (PeriodicResultManager.BOLT_ID.equals(component)) {
             routePeriodicResultManager(input);
         } else {
@@ -75,9 +74,9 @@ public class PingRouter extends Abstract {
         getOutput().emit(STREAM_REQUEST_ID, input, output);
     }
 
-    private void routeSpeakerDecoder(Tuple input) throws PipelineException {
-        PingResponse response = pullFlowResponse(input);
-        Values output = new Values(response.getPing().getPingId(), response, pullContext(input));
+    private void routePingResponse(Tuple input) throws PipelineException {
+        PingResponse response = pullPingResponse(input);
+        Values output = new Values(response.getPingId(), response, pullContext(input));
         getOutput().emit(STREAM_RESPONSE_ID, input, output);
     }
 
@@ -87,8 +86,8 @@ public class PingRouter extends Abstract {
         getOutput().emit(STREAM_BLACKLIST_UPDATE_ID, input, output);
     }
 
-    private PingResponse pullFlowResponse(Tuple input) throws PipelineException {
-        return pullValue(input, SpeakerDecoder.FIELD_ID_RESPONSE, PingResponse.class);
+    private PingResponse pullPingResponse(Tuple input) throws PipelineException {
+        return pullValue(input, InputRouter.FIELD_ID_PING_RESPONSE, PingResponse.class);
     }
 
     @Override

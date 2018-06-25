@@ -18,12 +18,13 @@ package org.openkilda.wfm.topology.ping.bolt;
 public enum ComponentId {
     MONOTONIC_TICK("monotonic.tick"),
 
-    SPEAKER_INPUT("speaker.input"),
-    SPEAKER_OUTPUT("speaker.output"),
+    INPUT("speaker"),
+    INPUT_DECODER("speaker.decoder"),
+    INPUT_ROUTER("input.router"),
 
     FLOW_FETCHER("flow_fetcher"),
     PING_PRODUCER("ping_producer"),
-    PING_ROUTER("ping_router"),
+    PING_ROUTER("ping.router"),
     BLACKLIST("blacklist"),
     TIMEOUT_MANAGER("timeout_manager"),
     RESULT_DISPATCHER("result.dispatcher"),
@@ -34,12 +35,16 @@ public enum ComponentId {
     FAIL_REPORTER("fail_reporter"),
 
     SPEAKER_ENCODER("speaker.encoder"),
-    SPEAKER_DECODER("speaker.decoder"),
+    SPEAKER_OUTPUT("speaker.output"),
 
-    /*
-    FLOW_SYNC_OUT("flow_sync.out"),
-    FLOW_STATS_OUT("flow_stats.out"),
-    */;
+    FLOW_STATUS_ENCODER("flow_status.encoder"),
+    FLOW_STATUS_OUTPUT("flow_status.output"),
+
+    OTSDB_ENCODER("otsdb.encoder"),
+    OTSDB_OUTPUT("otsdb.output"),
+
+    NORTHBOUND_ENCODER("northbound.encoder"),
+    NORTHBOUND_OUTPUT("northbound.output");
 
     private final String value;
 
