@@ -116,6 +116,9 @@ public class PingService extends AbstractOfHandler implements IFloodlightService
         return packet.getCookie() != OF_CATCH_RULE_COOKIE;
     }
 
+    /**
+     * Wrap ping data into L2 and L3 network packages.
+     */
     public Ethernet wrapData(Ping ping, byte[] payload) {
         Data l7 = new Data(payload);
 
@@ -144,7 +147,6 @@ public class PingService extends AbstractOfHandler implements IFloodlightService
 
     /**
      * Unpack network package.
-     *
      * Verify all particular qualities used during verification package creation time. Return packet payload.
      */
     public byte[] unwrapData(MacAddress targetL2Address, Ethernet packet) {

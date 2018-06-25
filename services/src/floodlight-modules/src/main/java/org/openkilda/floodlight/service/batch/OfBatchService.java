@@ -19,7 +19,6 @@ import org.openkilda.floodlight.SwitchUtils;
 import org.openkilda.floodlight.model.OfBatchResult;
 import org.openkilda.floodlight.model.OfRequestResponse;
 import org.openkilda.floodlight.service.AbstractOfHandler;
-import org.openkilda.floodlight.switchmanager.OFInstallException;
 
 import net.floodlightcontroller.core.FloodlightContext;
 import net.floodlightcontroller.core.IOFSwitch;
@@ -33,9 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.concurrent.Future;
 
 public class OfBatchService extends AbstractOfHandler implements IFloodlightService {

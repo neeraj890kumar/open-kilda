@@ -54,6 +54,9 @@ public class FlowPingResponse extends InfoData {
         this(flowId, null, null, errorMessage);
     }
 
+    /**
+     * Check all error fields and return true if any one is set.
+     */
     @JsonIgnore
     public boolean isError() {
         return (error != null)

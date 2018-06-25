@@ -23,7 +23,7 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 
 import org.openkilda.floodlight.SwitchUtils;
-import org.openkilda.floodlight.switchmanager.OFInstallException;
+import org.openkilda.floodlight.model.OfRequestResponse;
 
 import com.google.common.collect.ImmutableList;
 import net.floodlightcontroller.core.IOFSwitch;
@@ -58,9 +58,6 @@ public class OfBatchTest {
 
     @Test
     public void write() {
-        OfRequestResponse batchRecord = new OfRequestResponse(switchId, payload);
-        OfBatch batch = new OfBatch(switchUtils, ImmutableList.of(batchRecord));
-
         expect(switchUtils.lookupSwitch(switchId)).andReturn(iofSwitch).anyTimes();
         replay(switchUtils);
 
@@ -70,11 +67,9 @@ public class OfBatchTest {
         expect(iofSwitch.write(capture(captureSwitchWrite))).andReturn(true).times(2);
         replay(iofSwitch);
 
-        try {
-            batch.write();
-        } catch (OFInstallException e) {
-            throw new AssertionError("Batch write operation failed", e);
-        }
+        OfRequestResponse batchRecord = new OfRequestResponse(switchId, payload);
+        OfBatch batch = new OfBatch(switchUtils, ImmutableList.of(batchRecord));
+        batch.write();
 
         verify(switchUtils, iofSwitch);
 

@@ -29,12 +29,12 @@ class OfBatchSwitchQueue {
         this.dpId = dpId;
     }
 
-    synchronized public void add(OfBatch batch) {
+    public synchronized void add(OfBatch batch) {
         queue.addLast(batch);
         garbage = false;
     }
 
-    synchronized public void cleanup() {
+    public synchronized void cleanup() {
         queue.removeIf(OfBatch::isComplete);
     }
 
