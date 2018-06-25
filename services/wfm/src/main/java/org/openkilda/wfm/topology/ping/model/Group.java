@@ -15,17 +15,11 @@
 
 package org.openkilda.wfm.topology.ping.model;
 
-import org.openkilda.messaging.model.FlowDirection;
-
-import lombok.NonNull;
 import lombok.Value;
 import org.parboiled.common.ImmutableList;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 @Value
 public class Group implements Serializable {
@@ -35,29 +29,5 @@ public class Group implements Serializable {
     public Group(GroupId id, List<PingContext> records) {
         this.id = id;
         this.records = ImmutableList.copyOf(records);
-    }
-
-    public List<PingContext> get(@NonNull String flowId, FlowDirection direction) {
-        ArrayList<PingContext> matched = new ArrayList<>();
-        for (PingContext entry : records) {
-            if (! flowId.equals(entry.getFlowId())) {
-                continue;
-            }
-            if (direction != entry.getDirection()) {
-                continue;
-            }
-
-            matched.add(entry);
-        }
-
-        return matched;
-    }
-
-    public Set<String> getFlowId() {
-        HashSet<String> idCollection = new HashSet<>();
-        for (PingContext entry : records) {
-            idCollection.add(entry.getFlowId());
-        }
-        return idCollection;
     }
 }

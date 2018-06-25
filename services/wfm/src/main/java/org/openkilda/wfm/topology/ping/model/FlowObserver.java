@@ -33,8 +33,12 @@ public class FlowObserver {
         this.pingStatusBuilder = pingStatusBuilder;
     }
 
+    /**
+     * Update flow's state.
+     */
     public void update(PingContext pingContext) {
-        PingObserver pingObserver = observations.computeIfAbsent(pingContext.getCookie(), k -> pingStatusBuilder.build());
+        PingObserver pingObserver = observations.computeIfAbsent(
+                pingContext.getCookie(), k -> pingStatusBuilder.build());
 
         long timestamp = pingContext.getTimestamp();
         if (pingContext.isError()) {
@@ -48,6 +52,9 @@ public class FlowObserver {
         observations.remove(cookie);
     }
 
+    /**
+     * Notify stored ping observers about end of time tick.
+     */
     public PingReport.Status timeTick(long timestamp) {
         PingReport.Status status = PingReport.Status.OPERATIONAL;
         for (Iterator<PingObserver> iterator = observations.values().iterator(); iterator.hasNext(); ) {
@@ -73,6 +80,9 @@ public class FlowObserver {
         return status;
     }
 
+    /**
+     * Return list of cookies for failed flows.
+     */
     public List<Long> getFailedCookies() {
         return observations.entrySet().stream()
                 .filter(e -> e.getValue().isFail())

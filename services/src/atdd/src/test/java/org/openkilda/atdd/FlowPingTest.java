@@ -21,9 +21,9 @@ import org.openkilda.messaging.payload.flow.FlowEndpointPayload;
 import org.openkilda.messaging.payload.flow.FlowIdStatusPayload;
 import org.openkilda.messaging.payload.flow.FlowPayload;
 import org.openkilda.messaging.payload.flow.FlowState;
+import org.openkilda.northbound.dto.flows.PingInput;
 import org.openkilda.northbound.dto.flows.PingOutput;
 import org.openkilda.northbound.dto.flows.UniFlowVerificationOutput;
-import org.openkilda.northbound.dto.flows.PingInput;
 
 import cucumber.api.java.en.Given;
 import cucumber.api.java.en.Then;

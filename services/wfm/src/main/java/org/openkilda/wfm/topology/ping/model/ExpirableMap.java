@@ -36,6 +36,9 @@ public class ExpirableMap<K, V extends Expirable<K>> {
         put(value.getExpirableKey(), value);
     }
 
+    /**
+     * Add record if there is no record with same key.
+     */
     public V addIfAbsent(V value) {
         K key = value.getExpirableKey();
         V current = map.putIfAbsent(key, value);
@@ -47,6 +50,9 @@ public class ExpirableMap<K, V extends Expirable<K>> {
         return current;
     }
 
+    /**
+     * Remove record be key.
+     */
     public V remove(K key) {
         V value = map.remove(key);
         if (value != null) {
@@ -55,6 +61,9 @@ public class ExpirableMap<K, V extends Expirable<K>> {
         return value;
     }
 
+    /**
+     * Iterate over list until meet not expired record. Remove passed records.
+     */
     public List<V> expire(long edge) {
         LinkedList<V> removed = new LinkedList<>();
 

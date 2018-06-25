@@ -18,8 +18,8 @@ package org.openkilda.wfm.topology.ping.bolt;
 import org.openkilda.messaging.model.PingReport;
 import org.openkilda.wfm.error.AbstractException;
 import org.openkilda.wfm.error.PipelineException;
-import org.openkilda.wfm.topology.ping.model.FlowRef;
 import org.openkilda.wfm.topology.ping.model.FlowObserver;
+import org.openkilda.wfm.topology.ping.model.FlowRef;
 import org.openkilda.wfm.topology.ping.model.PingContext;
 import org.openkilda.wfm.topology.ping.model.PingObserver;
 
@@ -46,7 +46,7 @@ public class FailReporter extends Abstract {
     private final long failDelay;
     private final long failReset;
     private HashMap<String, FlowObserver> flowsStatusMap;
-    private PingObserver.PingStatusBuilder pingStatusBuilder;
+    private PingObserver.PingObserverBuilder pingStatusBuilder;
 
     public FailReporter(int failDelay, int failReset) {
         this.failDelay = TimeUnit.SECONDS.toMillis(failDelay);
@@ -82,7 +82,7 @@ public class FailReporter extends Abstract {
         final long now = input.getLongByField(MonotonicTick.FIELD_ID_TIME_MILLIS);
 
         for (Iterator<Entry<String, FlowObserver>> iterator = flowsStatusMap.entrySet().iterator();
-             iterator.hasNext(); ) {
+                 iterator.hasNext(); ) {
 
             Entry<String, FlowObserver> entry = iterator.next();
             FlowObserver flowObserver = entry.getValue();

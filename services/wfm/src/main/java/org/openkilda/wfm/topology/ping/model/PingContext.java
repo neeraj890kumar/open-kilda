@@ -20,6 +20,8 @@ import org.openkilda.messaging.model.FlowDirection;
 import org.openkilda.messaging.model.Ping;
 import org.openkilda.messaging.model.PingMeters;
 
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 
@@ -28,6 +30,7 @@ import java.util.UUID;
 
 @Data
 @Builder(toBuilder = true)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class PingContext implements Serializable {
     public enum Kinds {
         PERIODIC,
@@ -56,6 +59,9 @@ public class PingContext implements Serializable {
         return flow.getFlowId();
     }
 
+    /**
+     * Return ping ID if ping field is filled.
+     */
     public UUID getPingId() {
         if (ping == null) {
             return null;
@@ -67,6 +73,12 @@ public class PingContext implements Serializable {
         return error != null;
     }
 
+    /**
+     * Some set of error is permanent.
+     *
+     * <p>I.e. ping will always fail on this combination of source and dest. This method return true if current error is
+     * a permanent error.
+     */
     public boolean isPermanentError() {
         if (! isError()) {
             return false;
@@ -84,6 +96,11 @@ public class PingContext implements Serializable {
         return result;
     }
 
+    /**
+     * Return flow's cookie.
+     *
+     * <p>It use direction value to determine which(forward, reverse, of flagless) cookie should be returned.
+     */
     public long getCookie() {
         long value;
         if (direction == null) {

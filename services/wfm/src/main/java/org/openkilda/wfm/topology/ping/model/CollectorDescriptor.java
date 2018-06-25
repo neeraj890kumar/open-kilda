@@ -33,6 +33,9 @@ public class CollectorDescriptor extends Expirable<GroupId> {
         this.groupId = groupId;
     }
 
+    /**
+     * Store ping data.
+     */
     public void add(PingContext pingContext) {
         if (! seenRecords.add(pingContext.getPingId())) {
             throw new IllegalArgumentException(String.format(

@@ -29,6 +29,9 @@ public class FlowsHeap {
         set.add(new FlowRef(flow.getFlowId(), flow.getReverse().getCookie()));
     }
 
+    /**
+     * Calc and return difference between current and `other` heaps.
+     */
     public List<FlowRef> extra(FlowsHeap other) {
         ArrayList<FlowRef> result = new ArrayList<>();
         for (FlowRef entry : set) {
