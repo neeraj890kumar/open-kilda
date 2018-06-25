@@ -18,10 +18,9 @@ package org.openkilda.floodlight.service.batch;
 import org.projectfloodlight.openflow.protocol.OFMessage;
 import org.projectfloodlight.openflow.types.DatapathId;
 
-import java.util.Iterator;
 import java.util.LinkedList;
 
-public class OfBatchSwitchQueue {
+class OfBatchSwitchQueue {
     private final DatapathId dpId;
     private final LinkedList<OfBatch> queue = new LinkedList<>();
     private boolean garbage = true;
@@ -35,18 +34,18 @@ public class OfBatchSwitchQueue {
         garbage = false;
     }
 
-    synchronized boolean receiveResponse(OFMessage response) {
-        boolean match = false;
-        for (Iterator<OfBatch> iterator = queue.iterator(); iterator.hasNext(); ) {
-            OfBatch entry = iterator.next();
+    synchronized public void cleanup() {
+        queue.removeIf(OfBatch::isComplete);
+    }
 
+    synchronized OfBatch receiveResponse(OFMessage response) {
+        OfBatch match = null;
+        for (OfBatch entry : queue) {
             if (!entry.receiveResponse(dpId, response)) {
                 continue;
             }
-            if (entry.isComplete()) {
-                iterator.remove();
-            }
-            match = true;
+
+            match = entry;
             break;
         }
 

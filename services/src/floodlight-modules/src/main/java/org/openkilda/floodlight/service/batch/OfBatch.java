@@ -17,8 +17,8 @@ package org.openkilda.floodlight.service.batch;
 
 import org.openkilda.floodlight.SwitchUtils;
 import org.openkilda.floodlight.error.OfBatchWriteException;
-import org.openkilda.floodlight.model.OfRequestResponse;
 import org.openkilda.floodlight.model.OfBatchResult;
+import org.openkilda.floodlight.model.OfRequestResponse;
 import org.openkilda.floodlight.switchmanager.OFInstallException;
 
 import net.floodlightcontroller.core.IOFSwitch;
@@ -194,8 +194,12 @@ class OfBatch {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
 
             PendingKey that = (PendingKey) o;
             return new EqualsBuilder()
