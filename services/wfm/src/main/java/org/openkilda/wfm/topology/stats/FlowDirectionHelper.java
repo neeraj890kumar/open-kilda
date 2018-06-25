@@ -1,16 +1,28 @@
+/* Copyright 2018 Telstra Open Source
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ */
+
 package org.openkilda.wfm.topology.stats;
 
 import org.openkilda.messaging.model.FlowDirection;
 
-public class FlowDirectionHelper {
+public final class FlowDirectionHelper {
 
     /**
-     * Trys to determine the direction of the flow based on the cookie.
-     *
-     * @param cookie
-     * @return
+     * Tried to determine the direction of the flow by the cookie.
      */
-    static public FlowDirection findDirection(long cookie) throws FlowCookieException {
+    public static FlowDirection findDirection(long cookie) throws FlowCookieException {
         // Kilda flow first number represents direction with 4 = forward and 2 = reverse
         // Legacy flow Cookies 0x10400000005d803 is first switch in forward direction
         //                     0x18400000005d803 is first switch in reverse direction
@@ -27,7 +39,10 @@ public class FlowDirectionHelper {
         return direction;
     }
 
-    static public boolean isLegacyCookie(long cookie) {
+    /**
+     * Is cookie use legacy format(flags arrangement).
+     */
+    public static boolean isLegacyCookie(long cookie) {
         // A legacy cookie will have a value of 0 for the high order nibble
         // and the second nibble of >= 1
         // and the third nibble will be 0 or 8
@@ -38,7 +53,10 @@ public class FlowDirectionHelper {
         return (firstNibble == 0) && (switchSeqId > 0) && (param == 4);
     }
 
-    static public boolean isKildaCookie(long cookie) {
+    /**
+     * Is cookie use current/actual format(flags arrangement).
+     */
+    public static boolean isKildaCookie(long cookie) {
         // A Kilda cookie (with a smallish number of flows) will have a 8, 2 or 4 in the highest nibble
         // and the second, third, forth nibble will be 0
         long flowType = cookie >>> 60 & 0xf;
@@ -46,7 +64,10 @@ public class FlowDirectionHelper {
         return ((flowType == 2) || (flowType == 4) || (flowType == 8)) && nibbles == 0;
     }
 
-    static public FlowDirection getKildaDirection(long cookie) throws FlowCookieException {
+    /**
+     * Extract direction from actual cookie.
+     */
+    public static FlowDirection getKildaDirection(long cookie) throws FlowCookieException {
         // high order nibble represents type of flow with a 2 representing a forward flow
         // and a 4 representing the reverse flow
         if (!isKildaCookie(cookie)) {
@@ -59,7 +80,10 @@ public class FlowDirectionHelper {
         return direction == 4 ? FlowDirection.FORWARD : FlowDirection.REVERSE;
     }
 
-    static public FlowDirection getLegacyDirection(long cookie) throws FlowCookieException {
+    /**
+     * Extract direction from legacy cookie.
+     */
+    public static FlowDirection getLegacyDirection(long cookie) throws FlowCookieException {
         // Direction is the 3rd nibble from the top
         // If nibble is 0 it is forward and 8 is reverse
         if (!isLegacyCookie(cookie)) {
@@ -71,4 +95,6 @@ public class FlowDirectionHelper {
         }
         return direction == 0 ? FlowDirection.FORWARD : FlowDirection.REVERSE;
     }
+
+    private FlowDirectionHelper() {}
 }

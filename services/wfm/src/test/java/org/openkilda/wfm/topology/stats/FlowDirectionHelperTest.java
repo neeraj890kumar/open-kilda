@@ -4,11 +4,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import org.openkilda.messaging.model.FlowDirection;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-
-import org.openkilda.messaging.model.FlowDirection;
 
 import java.util.Map;
 

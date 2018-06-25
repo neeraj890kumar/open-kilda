@@ -588,19 +588,6 @@
     <suppress files="src/main/java/org/openkilda/wfm/topology/stats/CypherExecutor.java" lines="60" checks="NonEmptyAtclauseDescription"/>
     <suppress files="src/main/java/org/openkilda/wfm/topology/stats/CypherExecutor.java" lines="64" checks="MissingSwitchDefault"/>
     <suppress files="src/main/java/org/openkilda/wfm/topology/stats/FlowCookieException.java" lines="1" checks="RegexpHeader"/>
-    <suppress files="src/main/java/org/openkilda/wfm/topology/stats/FlowDirectionHelper.java" lines="1" checks="RegexpHeader"/>
-    <suppress files="src/main/java/org/openkilda/wfm/topology/stats/FlowDirectionHelper.java" lines="3" checks="HideUtilityClassConstructor"/>
-    <suppress files="src/main/java/org/openkilda/wfm/topology/stats/FlowDirectionHelper.java" lines="7" checks="LeftCurly"/>
-    <suppress files="src/main/java/org/openkilda/wfm/topology/stats/FlowDirectionHelper.java" lines="17" checks="NonEmptyAtclauseDescription"/>
-    <suppress files="src/main/java/org/openkilda/wfm/topology/stats/FlowDirectionHelper.java" lines="20" checks="ModifierOrder"/>
-    <suppress files="src/main/java/org/openkilda/wfm/topology/stats/FlowDirectionHelper.java" lines="37" checks="JavadocMethod"/>
-    <suppress files="src/main/java/org/openkilda/wfm/topology/stats/FlowDirectionHelper.java" lines="37" checks="ModifierOrder"/>
-    <suppress files="src/main/java/org/openkilda/wfm/topology/stats/FlowDirectionHelper.java" lines="48" checks="JavadocMethod"/>
-    <suppress files="src/main/java/org/openkilda/wfm/topology/stats/FlowDirectionHelper.java" lines="48" checks="ModifierOrder"/>
-    <suppress files="src/main/java/org/openkilda/wfm/topology/stats/FlowDirectionHelper.java" lines="56" checks="JavadocMethod"/>
-    <suppress files="src/main/java/org/openkilda/wfm/topology/stats/FlowDirectionHelper.java" lines="56" checks="ModifierOrder"/>
-    <suppress files="src/main/java/org/openkilda/wfm/topology/stats/FlowDirectionHelper.java" lines="69" checks="JavadocMethod"/>
-    <suppress files="src/main/java/org/openkilda/wfm/topology/stats/FlowDirectionHelper.java" lines="69" checks="ModifierOrder"/>
     <suppress files="src/main/java/org/openkilda/wfm/topology/stats/metrics/FlowDirections.java" lines="1" checks="RegexpHeader"/>
     <suppress files="src/main/java/org/openkilda/wfm/topology/stats/metrics/FlowMetricGenBolt.java" lines="22" checks="CustomImportOrder"/>
     <suppress files="src/main/java/org/openkilda/wfm/topology/stats/metrics/FlowMetricGenBolt.java" lines="23" checks="CustomImportOrder"/>
