@@ -56,8 +56,8 @@ import org.openkilda.northbound.converter.FlowMapper;
 import org.openkilda.northbound.dto.BatchResults;
 import org.openkilda.northbound.dto.flows.FlowValidationDto;
 import org.openkilda.northbound.dto.flows.PathDiscrepancyDto;
-import org.openkilda.northbound.dto.flows.VerificationInput;
-import org.openkilda.northbound.dto.flows.VerificationOutput;
+import org.openkilda.northbound.dto.flows.PingInput;
+import org.openkilda.northbound.dto.flows.PingOutput;
 import org.openkilda.northbound.messaging.MessageConsumer;
 import org.openkilda.northbound.messaging.MessageProducer;
 import org.openkilda.northbound.service.FlowService;
@@ -118,6 +118,12 @@ public class FlowServiceImpl implements FlowService {
      */
     @Value("#{kafkaTopicsConfig.getTopoEngTopic()}")
     private String topoEngTopic;
+
+    /**
+     * The kafka topic for `ping` topology.
+     */
+    @Value("#{kafkaTopicsConfig.getPingTopic()}")
+    private String pingTopic;
 
     @Value("${neo4j.hosts}")
     private String neoHost;
@@ -795,16 +801,17 @@ public class FlowServiceImpl implements FlowService {
     }
 
     @Override
-    public VerificationOutput verifyFlow(String flowId, VerificationInput payload) {
-        FlowPingRequest query = new FlowPingRequest(flowId, payload.getTimeoutMillis());
+    public PingOutput pingFlow(String flowId, PingInput payload) {
+        FlowPingRequest request = new FlowPingRequest(flowId, payload.getTimeoutMillis());
 
         final String correlationId = RequestCorrelationId.getId();
-        CommandMessage request = new CommandMessage(query, System.currentTimeMillis(), correlationId, Destination.WFM);
-        messageProducer.send(topic, request);
+        CommandMessage message = new CommandMessage(
+                request, System.currentTimeMillis(), correlationId, Destination.WFM);
+        messageProducer.send(pingTopic, message);
 
-        Message message = (Message) messageConsumer.poll(correlationId);
+        Message rawResponse = (Message) messageConsumer.poll(correlationId);
         FlowPingResponse response = (FlowPingResponse) validateInfoMessage(
-                request, message, correlationId);
+                message, rawResponse, correlationId);
 
         return flowMapper.toVerificationOutput(response);
     }

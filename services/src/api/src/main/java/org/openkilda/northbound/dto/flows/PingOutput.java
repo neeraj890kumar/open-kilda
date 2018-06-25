@@ -17,20 +17,31 @@ package org.openkilda.northbound.dto.flows;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Value;
+import lombok.Builder;
+import lombok.Data;
 
-import java.util.Optional;
+@Data
+public class PingOutput {
+    @JsonProperty("flow_id")
+    private String flowId;
 
-@Value
-public class VerificationInput {
-    public static final int DEFAULT_TIMEOUT = 2000;
+    @JsonProperty("forward")
+    private UniFlowVerificationOutput forward;
 
-    @JsonProperty("timeout")
-    private int timeoutMillis;
+    @JsonProperty("reverse")
+    private UniFlowVerificationOutput reverse;
 
+    // To satisfy mapstruct
+    public PingOutput() { }
+
+    @Builder
     @JsonCreator
-    public VerificationInput(
-            @JsonProperty("timeout") Integer timeoutMillis) {
-        this.timeoutMillis = Optional.ofNullable(timeoutMillis).orElse(DEFAULT_TIMEOUT);
+    public PingOutput(
+            @JsonProperty("flow_id") String flowId,
+            @JsonProperty("forward") UniFlowVerificationOutput forward,
+            @JsonProperty("reverse") UniFlowVerificationOutput reverse) {
+        this.flowId = flowId;
+        this.forward = forward;
+        this.reverse = reverse;
     }
 }

@@ -15,20 +15,20 @@
 
 package org.openkilda.northbound.converter;
 
-import org.openkilda.messaging.info.flow.FlowVerificationErrorCode;
 import org.openkilda.messaging.info.flow.FlowPingResponse;
-import org.openkilda.northbound.dto.flows.VerificationOutput;
+import org.openkilda.messaging.model.Ping;
+import org.openkilda.northbound.dto.flows.PingOutput;
 
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
 public interface FlowMapper {
-    VerificationOutput toVerificationOutput(FlowPingResponse response);
+    PingOutput toVerificationOutput(FlowPingResponse response);
 
     /**
      * Translate Java's error code(enum) into human readable string.
      */
-    default String getVerificationError(FlowVerificationErrorCode error) {
+    default String getVerificationError(Ping.Errors error) {
         if (error == null) {
             return null;
         }
