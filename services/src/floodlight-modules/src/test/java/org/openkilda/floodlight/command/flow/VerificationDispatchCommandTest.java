@@ -24,7 +24,6 @@ import static org.easymock.EasyMock.verify;
 
 import org.openkilda.floodlight.command.Command;
 import org.openkilda.messaging.Message;
-import org.openkilda.messaging.command.flow.UniFlowVerificationRequest;
 import org.openkilda.messaging.info.InfoData;
 import org.openkilda.messaging.info.InfoMessage;
 import org.openkilda.messaging.info.flow.FlowVerificationErrorCode;

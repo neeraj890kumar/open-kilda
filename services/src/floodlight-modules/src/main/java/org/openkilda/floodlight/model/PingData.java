@@ -17,7 +17,6 @@
 package org.openkilda.floodlight.model;
 
 import org.openkilda.floodlight.error.CorruptedNetworkDataException;
-import org.openkilda.messaging.command.flow.UniFlowVerificationRequest;
 import org.openkilda.messaging.model.Ping;
 import org.openkilda.messaging.model.PingMeters;
 
@@ -65,7 +64,7 @@ public class PingData implements ISignPayload {
     }
 
     /**
-     * Build {@link PingData} from {@link UniFlowVerificationRequest} instance.
+     * Build {@link PingData} from {@link Ping} instance.
      */
     public static PingData of(Ping ping) {
         DatapathId source = DatapathId.of(ping.getSource().getSwitchDpId());

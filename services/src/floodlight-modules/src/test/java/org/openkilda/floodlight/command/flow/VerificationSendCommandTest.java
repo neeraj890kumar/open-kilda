@@ -26,7 +26,6 @@ import static org.easymock.EasyMock.verify;
 import org.openkilda.floodlight.service.batch.OfRequestResponse;
 import org.openkilda.floodlight.switchmanager.OFInstallException;
 import org.openkilda.floodlight.utils.DataSignature;
-import org.openkilda.messaging.command.flow.UniFlowVerificationRequest;
 
 import org.easymock.Capture;
 import org.easymock.CaptureType;

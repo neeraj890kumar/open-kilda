@@ -23,7 +23,6 @@ import org.openkilda.floodlight.kafka.KafkaMessageProducer;
 import org.openkilda.floodlight.service.PingService;
 import org.openkilda.floodlight.service.batch.OfBatchService;
 import org.openkilda.messaging.command.flow.FlowPingRequest;
-import org.openkilda.messaging.command.flow.UniFlowVerificationRequest;
 import org.openkilda.messaging.model.Flow;
 import org.openkilda.messaging.model.FlowDirection;
 

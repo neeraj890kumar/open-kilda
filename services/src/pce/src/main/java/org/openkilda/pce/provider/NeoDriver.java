@@ -167,7 +167,6 @@ public class NeoDriver implements PathComputer {
     }
 
 
-    // FIXME(surabujin): query injection
     private List<Flow> _getFlows(String whereClause) {
         String q =
                 "MATCH (:switch)-[f:flow]->(:switch) " +

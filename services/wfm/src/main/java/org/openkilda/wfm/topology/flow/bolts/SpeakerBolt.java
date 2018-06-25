@@ -49,11 +49,6 @@ import java.util.Map;
  * Speaker Bolt. Processes replies from OpenFlow Speaker service.
  */
 public class SpeakerBolt extends BaseRichBolt {
-    public static final String FIELD_ID_INPUT = "input";
-    public static final String FIELD_ID_PAYLOAD = "payload";
-
-    public static final String STREAM_VERIFICATION_ID = "verification";
-    public static final Fields STREAM_VERIFICATION_FIELDS = new Fields(FIELD_ID_PAYLOAD, FIELD_ID_INPUT);
     /**
      * The logger.
      */
@@ -76,11 +71,6 @@ public class SpeakerBolt extends BaseRichBolt {
 
             Message message = MAPPER.readValue(request, Message.class);
             logger.debug("Request tuple={}", tuple);
-
-            if (message instanceof InfoMessage) {
-                handleInfoMessage(tuple, (InfoMessage) message);
-                return;
-            }
 
             if (!Destination.WFM_TRANSACTION.equals(message.getDestination())) {
                 return;
@@ -156,17 +146,6 @@ public class SpeakerBolt extends BaseRichBolt {
         }
     }
 
-    private void handleInfoMessage(Tuple input, InfoMessage message) {
-        InfoData rawPayload = message.getData();
-
-        if (rawPayload instanceof UniFlowPingResponse) {
-            Values proxyData = new Values(rawPayload, message);
-            outputCollector.emit(STREAM_VERIFICATION_ID, input, proxyData);
-        } else {
-            logger.debug("Unhandled InfoMessage with payload type: {}", rawPayload.getClass().getName());
-        }
-    }
-
     /**
      * {@inheritDoc}
      */
@@ -177,7 +156,6 @@ public class SpeakerBolt extends BaseRichBolt {
         outputFieldsDeclarer.declareStream(
                 StreamType.DELETE.toString(), FlowTopology.fieldsMessageSwitchIdFlowIdTransactionId);
         outputFieldsDeclarer.declareStream(StreamType.STATUS.toString(), FlowTopology.fieldsFlowIdStatus);
-        outputFieldsDeclarer.declareStream(STREAM_VERIFICATION_ID, STREAM_VERIFICATION_FIELDS);
     }
 
     /**
