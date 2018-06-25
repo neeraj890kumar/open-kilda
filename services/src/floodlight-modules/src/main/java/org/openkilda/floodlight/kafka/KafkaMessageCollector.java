@@ -18,6 +18,7 @@ package org.openkilda.floodlight.kafka;
 import org.openkilda.config.KafkaTopicsConfig;
 import org.openkilda.floodlight.config.KafkaFloodlightConfig;
 import org.openkilda.floodlight.config.provider.ConfigurationProvider;
+import org.openkilda.floodlight.service.ConfigService;
 import org.openkilda.floodlight.service.PingService;
 import org.openkilda.floodlight.service.batch.OfBatchService;
 import org.openkilda.floodlight.switchmanager.ISwitchManager;
@@ -45,12 +46,14 @@ public class KafkaMessageCollector implements IFloodlightModule {
 
     private static final Logger logger = LoggerFactory.getLogger(KafkaMessageCollector.class);
 
+    private ConfigService configService = new ConfigService();
     private OfBatchService ofBatchService = new OfBatchService();
     private PingService pingService = new PingService();
 
     @Override
     public Collection<Class<? extends IFloodlightService>> getModuleServices() {
         return ImmutableList.of(
+                ConfigService.class,
                 OfBatchService.class,
                 PingService.class);
     }
@@ -83,6 +86,7 @@ public class KafkaMessageCollector implements IFloodlightModule {
     public void startUp(FloodlightModuleContext moduleContext) throws FloodlightModuleException {
         logger.info("Starting {}", this.getClass().getCanonicalName());
 
+        configService.init(new ConfigurationProvider(moduleContext, this));
         ofBatchService.init(moduleContext);
         pingService.init(moduleContext);
 
@@ -91,12 +95,8 @@ public class KafkaMessageCollector implements IFloodlightModule {
     }
 
     private ConsumerContext initContext(FloodlightModuleContext moduleContext) {
-        ConfigurationProvider provider = new ConfigurationProvider(moduleContext, this);
-
-        KafkaFloodlightConfig kafkaConfig = provider.getConfiguration(KafkaFloodlightConfig.class);
-        KafkaTopicsConfig topicsConfig = provider.getConfiguration(KafkaTopicsConfig.class);
-
-        return new ConsumerContext(moduleContext, kafkaConfig, topicsConfig);
+        KafkaFloodlightConfig kafkaConfig = configService.getProvider().getConfiguration(KafkaFloodlightConfig.class);
+        return new ConsumerContext(moduleContext, kafkaConfig, configService.getTopics());
     }
 
     private void initConsumer(FloodlightModuleContext moduleContext, ConsumerContext context) {

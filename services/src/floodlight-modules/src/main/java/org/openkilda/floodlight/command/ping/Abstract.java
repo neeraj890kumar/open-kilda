@@ -18,6 +18,7 @@ package org.openkilda.floodlight.command.ping;
 import org.openkilda.floodlight.command.Command;
 import org.openkilda.floodlight.command.CommandContext;
 import org.openkilda.floodlight.kafka.KafkaMessageProducer;
+import org.openkilda.floodlight.service.ConfigService;
 import org.openkilda.floodlight.service.PingService;
 import org.openkilda.messaging.Topic;
 import org.openkilda.messaging.floodlight.response.PingResponse;
@@ -30,12 +31,14 @@ import java.util.UUID;
 
 abstract class Abstract extends Command {
     private final KafkaMessageProducer kafkaProducer;
+    private final ConfigService configService;
     private final PingService pingService;
 
     Abstract(CommandContext context) {
         super(context);
 
         FloodlightModuleContext moduleContext = getContext().getModuleContext();
+        configService = moduleContext.getServiceImpl(ConfigService.class);
         pingService = moduleContext.getServiceImpl(PingService.class);
         kafkaProducer = moduleContext.getServiceImpl(KafkaMessageProducer.class);
     }
@@ -46,8 +49,9 @@ abstract class Abstract extends Command {
     }
 
     void sendResponse(PingResponse response) {
+        String topic = configService.getTopics().getPingTopic();
         InfoMessage message = new InfoMessage(response, System.currentTimeMillis(), getContext().getCorrelationId());
-        kafkaProducer.postMessage(Topic.FLOW, message);
+        kafkaProducer.postMessage(topic, message);
     }
 
     protected PingService getPingService() {
