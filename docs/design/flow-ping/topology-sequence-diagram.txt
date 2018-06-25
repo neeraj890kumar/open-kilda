@@ -1,10 +1,15 @@
 @startuml
 title FLOW ping(verification) topology
 
+control kilda.ping
+control Time
+
 control kilda.stats
 control kilda.flow.status
 
-participant Time
+participant InputDecoder
+participant InputRouter
+
 participant FlowFetcher
 participant Neo4j
 
@@ -18,10 +23,8 @@ participant GroupCollector
 participant StatsProducer
 participant FailReporter
 participant SpeakerEncoder
-participant SpeakerDecoder
 
 control kilda.speaker
-control kilda.ping
 
 participant FL
 
@@ -89,11 +92,14 @@ alt normal workflow
     FL -> kilda.ping: json{PingResponse}
     deactivate FL
 
-    kilda.ping -> SpeakerDecoder: json{PingResponse}
+    kilda.ping -> InputDecoder: json{PingResponse}
 
-    activate SpeakerDecoder
-    SpeakerDecoder -> PingRouter: PingResponse
-    deactivate SpeakerDecoder
+    activate InputDecoder
+    InputDecoder -> InputRouter: PingResponse
+    deactivate InputDecoder
+    activate InputRouter
+    InputRouter -> PingRouter: PingResponse
+    deactivate InputRouter
 
     PingRouter -> TimeoutManager: PingResponse\n(field grouping)
     note right of TimeoutManager: cancel timeout
