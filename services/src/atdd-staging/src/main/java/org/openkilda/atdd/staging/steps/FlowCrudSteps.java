@@ -59,9 +59,12 @@ import org.openkilda.atdd.staging.service.traffexam.model.ExamResources;
 import org.openkilda.atdd.staging.steps.helpers.FlowTrafficExamBuilder;
 import org.openkilda.atdd.staging.steps.helpers.TopologyUnderTest;
 import org.openkilda.atdd.staging.tools.SoftAssertions;
+import org.openkilda.messaging.info.event.IslInfoData;
+import org.openkilda.messaging.info.event.PathNode;
 import org.openkilda.messaging.model.Flow;
 import org.openkilda.messaging.model.ImmutablePair;
 import org.openkilda.messaging.payload.flow.FlowIdStatusPayload;
+import org.openkilda.messaging.payload.flow.FlowPathPayload;
 import org.openkilda.messaging.payload.flow.FlowPayload;
 import org.openkilda.messaging.payload.flow.FlowState;
 import org.openkilda.northbound.dto.flows.FlowValidationDto;
@@ -77,6 +80,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -110,7 +114,8 @@ public class FlowCrudSteps implements En {
     @Qualifier("topologyUnderTest")
     private TopologyUnderTest topologyUnderTest;
 
-    Set<FlowPayload> flows;
+    private Set<FlowPayload> flows;
+    private FlowPayload flowResponse;
 
     @Given("^flows defined over active switches in the reference topology$")
     public void defineFlowsOverActiveSwitches() {
@@ -195,6 +200,10 @@ public class FlowCrudSteps implements En {
 
     @And("^(?:each )?flow is in UP state$")
     public void eachFlowIsInUpState() {
+        eachFlowIsInUpState(flows);
+    }
+
+    private void eachFlowIsInUpState(Set<FlowPayload> flows) {
         for (FlowPayload flow : flows) {
             FlowIdStatusPayload status = Failsafe.with(retryPolicy()
                     .retryIf(p -> p == null || ((FlowIdStatusPayload) p).getStatus() != FlowState.UP))
@@ -429,5 +438,105 @@ public class FlowCrudSteps implements En {
         return new RetryPolicy()
                 .withDelay(2, TimeUnit.SECONDS)
                 .withMaxRetries(10);
+    }
+
+    @Given("^random flow aliased as '(.*)'$")
+    public void randomFlowAliasedAsFlow(String flowAlias) {
+        topologyUnderTest.addAlias(flowAlias, flowManager.randomFlow());
+    }
+
+    @And("^change bandwidth of (.*) flow to (\\d+)$")
+    public void changeBandwidthOfFlow(String flowAlias, int newBw) {
+        FlowPayload flow = topologyUnderTest.getAliasedObject(flowAlias);
+        flow.setMaximumBandwidth(newBw);
+    }
+
+    @When("^change bandwidth of (.*) flow to '(.*)'$")
+    public void changeBandwidthOfFlow(String flowAlias, String bwAlias) {
+        FlowPayload flow = topologyUnderTest.getAliasedObject(flowAlias);
+        int bw = ((Long) topologyUnderTest.getAliasedObject(bwAlias)).intValue();
+        flow.setMaximumBandwidth(bw);
+    }
+
+    @And("^create flow (.*)$")
+    public void createFlow(String flowAlias) {
+        FlowPayload flow = topologyUnderTest.getAliasedObject(flowAlias);
+        flowResponse = northboundService.addFlow(flow);
+    }
+
+    @And("^'(.*)' flow is in UP state$")
+    public void flowIsInUpState(String flowAlias) {
+        FlowPayload flow = topologyUnderTest.getAliasedObject(flowAlias);
+        eachFlowIsInUpState(Collections.singleton(flow));
+    }
+
+    @And("^get available bandwidth and maximum speed for flow (.*) and alias them as '(.*)' "
+            + "and '(.*)' respectively$")
+    public void getAvailableBandwidthAndSpeed(String flowAlias, String bwAlias, String speedAlias) {
+        FlowPayload flow = topologyUnderTest.getAliasedObject(flowAlias);
+        List<PathNode> flowPath = northboundService.getFlowPath(flow.getId()).getPath().getPath();
+        List<IslInfoData> allLinks = northboundService.getAllLinks();
+        long minBw = Long.MAX_VALUE;
+        long minSpeed = Long.MAX_VALUE;
+
+        /*
+        Take flow path and all links. Now for every pair in flow path find a link.
+        Take minimum available bandwidth and minimum available speed from those links
+        (flow's speed and left bandwidth depends on the weakest isl)
+        */
+        for (int i = 1; i < flowPath.size(); i += 2) {
+            PathNode from = flowPath.get(i - 1);
+            PathNode to = flowPath.get(i);
+            IslInfoData isl = allLinks.stream().filter(link ->
+                    link.getPath().get(0).equals(from)
+                            && link.getPath().get(1).equals(to)).findFirst().get();
+            minBw = Math.min(isl.getAvailableBandwidth(), minBw);
+            minSpeed = Math.min(isl.getSpeed(), minSpeed);
+        }
+        topologyUnderTest.addAlias(bwAlias, minBw);
+        topologyUnderTest.addAlias(speedAlias, minSpeed);
+    }
+
+    @And("^update flow (.*)$")
+    public void updateFlow(String flowAlias) {
+        FlowPayload flow = topologyUnderTest.getAliasedObject(flowAlias);
+        flowResponse = northboundService.updateFlow(flow.getId(), flow);
+    }
+
+    @When("^get info about flow (.*)$")
+    public void getInfoAboutFlow(String flowAlias) {
+        FlowPayload flow = topologyUnderTest.getAliasedObject(flowAlias);
+        flowResponse = northboundService.getFlow(flow.getId());
+    }
+
+    @Then("^response flow has bandwidth equal to '(.*)'$")
+    public void responseFlowHasBandwidth(String bwAlias) {
+        long expectedBw = topologyUnderTest.getAliasedObject(bwAlias);
+        assertThat((long) flowResponse.getMaximumBandwidth(), equalTo(expectedBw));
+    }
+
+    @Then("^response flow has bandwidth equal to (\\d+)$")
+    public void responseFlowHasBandwidth(int expectedBw) {
+        assertThat(flowResponse.getMaximumBandwidth(), equalTo(expectedBw));
+    }
+
+    @And("^delete flow (.*)$")
+    public void deleteFlow(String flowAlias) {
+        FlowPayload flow = topologyUnderTest.getAliasedObject(flowAlias);
+        northboundService.deleteFlow(flow.getId());
+    }
+
+    @And("^get path of '(.*)' and alias it as '(.*)'$")
+    public void getPathAndAlias(String flowAlias, String pathAlias) {
+        FlowPayload flow = topologyUnderTest.getAliasedObject(flowAlias);
+        topologyUnderTest.addAlias(pathAlias, northboundService.getFlowPath(flow.getId()));
+    }
+
+    @And("^(.*) flow's path equals to '(.*)'$")
+    public void verifyFlowPath(String flowAlias, String pathAlias) {
+        FlowPayload flow = topologyUnderTest.getAliasedObject(flowAlias);
+        FlowPathPayload expectedPath = topologyUnderTest.getAliasedObject(pathAlias);
+        FlowPathPayload actualPath = northboundService.getFlowPath(flow.getId());
+        assertThat(actualPath, equalTo(expectedPath));
     }
 }
