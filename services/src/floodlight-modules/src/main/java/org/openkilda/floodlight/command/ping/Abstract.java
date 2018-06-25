@@ -20,7 +20,6 @@ import org.openkilda.floodlight.command.CommandContext;
 import org.openkilda.floodlight.kafka.KafkaMessageProducer;
 import org.openkilda.floodlight.service.ConfigService;
 import org.openkilda.floodlight.service.PingService;
-import org.openkilda.messaging.Topic;
 import org.openkilda.messaging.floodlight.response.PingResponse;
 import org.openkilda.messaging.info.InfoMessage;
 import org.openkilda.messaging.model.Ping;
