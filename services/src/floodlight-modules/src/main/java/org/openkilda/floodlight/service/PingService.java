@@ -117,7 +117,7 @@ public class PingService extends AbstractOfHandler implements IFloodlightService
     }
 
     /**
-     * Wrap ping data into L2 and L3 network packages.
+     * Wrap ping data into L2, l3 and L4 network packages.
      */
     public Ethernet wrapData(Ping ping, byte[] payload) {
         Data l7 = new Data(payload);
