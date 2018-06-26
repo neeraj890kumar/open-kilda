@@ -20,9 +20,11 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;
 
+import java.io.Serializable;
+
 @Value
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class PingMeters {
+public class PingMeters implements Serializable {
     @JsonProperty("network_latency")
     private long networkLatency;
 

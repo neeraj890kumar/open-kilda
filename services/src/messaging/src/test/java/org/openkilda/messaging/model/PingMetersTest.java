@@ -13,24 +13,20 @@
  *   limitations under the License.
  */
 
-package org.openkilda.messaging.command.flow;
+package org.openkilda.messaging.model;
 
-import org.openkilda.messaging.StringSerializer;
-import org.openkilda.messaging.command.CommandData;
-import org.openkilda.messaging.command.CommandMessage;
+import org.openkilda.messaging.ObjectSerializer;
 
 import org.junit.Assert;
 import org.junit.Test;
 
-public class FlowPingRequestTest implements StringSerializer {
+public class PingMetersTest implements ObjectSerializer {
     @Test
     public void serializeLoop() throws Exception {
-        FlowPingRequest origin = new FlowPingRequest("flowId", 5000);
-        CommandMessage wrapper = new CommandMessage(origin, System.currentTimeMillis(), getClass().getSimpleName());
+        PingMeters origin = new PingMeters(1L, 2L, 3L);
 
-        serialize(wrapper);
-        CommandMessage decodedWrapper = (CommandMessage) deserialize();
-        CommandData decoded = decodedWrapper.getData();
+        serialize(origin);
+        PingMeters decoded = (PingMeters) deserialize();
 
         Assert.assertEquals(
                 String.format("%s object have been mangled in serialisation/deserialization loop",

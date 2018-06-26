@@ -13,24 +13,32 @@
  *   limitations under the License.
  */
 
-package org.openkilda.messaging.command.flow;
+package org.openkilda.messaging.info.flow;
 
 import org.openkilda.messaging.StringSerializer;
-import org.openkilda.messaging.command.CommandData;
-import org.openkilda.messaging.command.CommandMessage;
+import org.openkilda.messaging.info.InfoData;
+import org.openkilda.messaging.info.InfoMessage;
+import org.openkilda.messaging.model.NetworkEndpoint;
+import org.openkilda.messaging.model.Ping;
+import org.openkilda.messaging.model.PingMeters;
 
 import org.junit.Assert;
 import org.junit.Test;
 
-public class FlowPingRequestTest implements StringSerializer {
+public class UniFlowPingResponseTest implements StringSerializer {
     @Test
     public void serializeLoop() throws Exception {
-        FlowPingRequest origin = new FlowPingRequest("flowId", 5000);
-        CommandMessage wrapper = new CommandMessage(origin, System.currentTimeMillis(), getClass().getSimpleName());
+        NetworkEndpoint endpointAlpha = new NetworkEndpoint("ff:fe:00:00:00:00:00:01", 8);
+        NetworkEndpoint endpointBeta = new NetworkEndpoint("ff:fe:00:00:00:00:00:02", 10);
+        UniFlowPingResponse origin = new UniFlowPingResponse(
+                new Ping((short) 0x200, endpointBeta, endpointAlpha),
+                new PingMeters(3L, 2L, 1L),
+                null);
+        InfoMessage wrapper = new InfoMessage(origin, System.currentTimeMillis(), getClass().getSimpleName());
 
         serialize(wrapper);
-        CommandMessage decodedWrapper = (CommandMessage) deserialize();
-        CommandData decoded = decodedWrapper.getData();
+        InfoMessage decodedWrapper = (InfoMessage) deserialize();
+        InfoData decoded = decodedWrapper.getData();
 
         Assert.assertEquals(
                 String.format("%s object have been mangled in serialisation/deserialization loop",

@@ -21,11 +21,13 @@ import org.openkilda.messaging.model.Ping;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.EqualsAndHashCode;
 import lombok.Value;
 
 import java.util.UUID;
 
 @Value
+@EqualsAndHashCode(callSuper = false)
 public class PingRequest extends CommandData {
     @JsonProperty(value = "ping", required = true)
     private Ping ping;

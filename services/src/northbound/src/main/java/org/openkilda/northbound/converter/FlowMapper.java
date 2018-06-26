@@ -17,13 +17,13 @@ package org.openkilda.northbound.converter;
 
 import org.openkilda.messaging.info.flow.FlowPingResponse;
 import org.openkilda.messaging.model.Ping;
-import org.openkilda.northbound.dto.flows.PingOutput;
+import org.openkilda.northbound.dto.flows.FlowPingOutput;
 
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
 public interface FlowMapper {
-    PingOutput toVerificationOutput(FlowPingResponse response);
+    FlowPingOutput toVerificationOutput(FlowPingResponse response);
 
     /**
      * Translate Java's error code(enum) into human readable string.

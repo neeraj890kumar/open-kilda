@@ -24,13 +24,13 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import lombok.EqualsAndHashCode;
 import lombok.Value;
 
 import java.util.UUID;
 
 @Value
-@JsonSerialize
+@EqualsAndHashCode(callSuper = false)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class UniFlowPingResponse extends InfoData {
     @JsonProperty("ping_success")
@@ -39,8 +39,8 @@ public class UniFlowPingResponse extends InfoData {
     @JsonProperty("error")
     private Errors error;
 
-    @JsonProperty("measures")
-    private PingMeters measures;
+    @JsonProperty("meters")
+    private PingMeters meters;
 
     @JsonProperty("ping")
     private Ping ping;
@@ -49,16 +49,16 @@ public class UniFlowPingResponse extends InfoData {
     public UniFlowPingResponse(
             @JsonProperty("ping_success") boolean pingSuccess,
             @JsonProperty("error") Errors error,
-            @JsonProperty("measures") PingMeters measures,
+            @JsonProperty("meters") PingMeters meters,
             @JsonProperty("ping") Ping ping) {
         this.pingSuccess = pingSuccess;
         this.error = error;
-        this.measures = measures;
+        this.meters = meters;
         this.ping = ping;
     }
 
-    public UniFlowPingResponse(Ping ping, PingMeters measures, Ping.Errors error) {
-        this(error == null, error, measures, ping);
+    public UniFlowPingResponse(Ping ping, PingMeters meters, Ping.Errors error) {
+        this(error == null, error, meters, ping);
     }
 
     @JsonIgnore
