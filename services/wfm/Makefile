@@ -1,20 +1,24 @@
-#
-# NB: On the mac, brew currently installs 0.11.0.1. (as of 2017.12.24).
-#     To get 0.10.2.1, look at https://www.apache.org/dyn/closer.cgi?path=/kafka/0.10.2.1/kafka_2.12-0.10.2.1.tgz
-#
-KAFKA_BIN ?= /usr/local/Cellar/kafka/0.11.0.1/bin
+# WFM Makefile
 
-start-k: start-z
-	${KAFKA_BIN}/kafka-server-start /usr/local/etc/kafka/server.properties &
+TOPOLOGY := wfm flow stats cache islstats opentsdb portstate nbworker
 
-stop-k:
-	${KAFKA_BIN}/kafka-server-stop /usr/local/etc/kafka/server.properties
+ENTER_wfm := org.openkilda.wfm.topology.event.OFEventWFMTopology
+ENTER_flow := org.openkilda.wfm.topology.flow.FlowTopology
+ENTER_stats := org.openkilda.wfm.topology.stats.StatsTopology
+ENTER_cache := org.openkilda.wfm.topology.cache.CacheTopology
+ENTER_islstats := org.openkilda.wfm.topology.islstats.IslStatsTopology
+ENTER_opentsdb := org.openkilda.wfm.topology.opentsdb.OpenTSDBTopology
+ENTER_portstate := org.openkilda.wfm.topology.portstate.PortStateTopology
+ENTER_nbworker := org.openkilda.wfm.topology.nbworker.NbWorkerTopology
 
-start-z:
-	zkServer start
+TOPOLOGY_JAR := target/WorkflowManager-1.0-SNAPSHOT-jar-with-dependencies.jar
 
-stop-z:
-	zkServer stop
+deploy_targets := $(addprefix deploy-,$(TOPOLOGY))
+kill_targets := $(addprefix kill-,$(TOPOLOGY))
+
+entry_point = $(ENTER_$(patsubst deploy-%,%,$@))
+deploy_topology_name = $(patsubst deploy-%,%,$@)
+kill_topology_name = $(patsubst kill-%,%,$@)
 
 all-in-one-tested:
 	mvn assembly:assembly
@@ -22,67 +26,14 @@ all-in-one-tested:
 all-in-one:
 	mvn assembly:assembly -DskipTests
 
-deploy-wfm:
-	storm jar target/WorkflowManager-1.0-SNAPSHOT-jar-with-dependencies.jar \
-        org.openkilda.wfm.topology.event.OFEventWFMTopology \
-        --name=wfm ${config}
+deploy-all: $(deploy_targets)
+kill-all: $(kill_targets)
 
-kill-wfm:
-	storm kill wfm >/dev/null 2>&1
+$(deploy_targets):
+	storm jar $(TOPOLOGY_JAR) $(entry_point) --name=$(deploy_topology_name) ${config}
 
-deploy-flow:
-	storm jar target/WorkflowManager-1.0-SNAPSHOT-jar-with-dependencies.jar \
-        org.openkilda.wfm.topology.flow.FlowTopology \
-        --name=flow ${config}
+$(kill_targets):
+	storm kill $@ >/dev/null 2>&1
 
-kill-flow:
-	storm kill flow >/dev/null 2>&1
-
-deploy-stats:
-	storm jar target/WorkflowManager-1.0-SNAPSHOT-jar-with-dependencies.jar \
-        org.openkilda.wfm.topology.stats.StatsTopology \
-        --name=stats ${config}
-
-kill-stats:
-	storm kill stats >/dev/null 2>&1
-
-deploy-cache:
-	storm jar target/WorkflowManager-1.0-SNAPSHOT-jar-with-dependencies.jar \
-        org.openkilda.wfm.topology.cache.CacheTopology \
-        --name=cache ${config}
-
-kill-cache:
-	storm kill cache >/dev/null 2>&1
-
-deploy-islstats:
-	storm jar target/WorkflowManager-1.0-SNAPSHOT-jar-with-dependencies.jar \
-		org.openkilda.wfm.topology.islstats.IslStatsTopology \
-		--name=islstats ${config}
-
-kill-islstats:
-	storm kill islstats >/dev/null 2>&1
-
-deploy-opentsdb:
-	storm jar target/WorkflowManager-1.0-SNAPSHOT-jar-with-dependencies.jar \
-		org.openkilda.wfm.topology.opentsdb.OpenTSDBTopology \
-		--name=opentsdb ${config}
-
-kill-opentsdb:
-	storm kill opentsdb >/dev/null 2>&1
-
-deploy-portstate:
-	storm jar target/WorkflowManager-1.0-SNAPSHOT-jar-with-dependencies.jar \
-		org.openkilda.wfm.topology.portstate.PortStateTopology \
-		--name=portstate ${config}
-
-kill-portstate:
-	storm kill portstate >/dev/null 2>&1
-
-deploy-nbworker:
-	storm jar target/WorkflowManager-1.0-SNAPSHOT-jar-with-dependencies.jar \
-		org.openkilda.wfm.topology.nbworker.NbWorkerTopology \
-		--name=nbworker ${config}
-
-kill-nbworker:
-	storm kill nbworker >/dev/null 2>&1
-
+.PHONY: deploy-all kill-all
+.PHONY: $(deploy_targets) $(kill_targets)
