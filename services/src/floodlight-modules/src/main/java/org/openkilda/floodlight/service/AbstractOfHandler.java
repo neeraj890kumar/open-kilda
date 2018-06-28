@@ -15,6 +15,8 @@
 
 package org.openkilda.floodlight.service;
 
+import org.openkilda.floodlight.utils.NewCorrelationContextRequired;
+
 import com.google.common.collect.ImmutableSet;
 import net.floodlightcontroller.core.FloodlightContext;
 import net.floodlightcontroller.core.IFloodlightProviderService;
@@ -51,6 +53,7 @@ public abstract class AbstractOfHandler implements IOFMessageListener {
     }
 
     @Override
+    @NewCorrelationContextRequired
     public Command receive(IOFSwitch sw, OFMessage message, FloodlightContext context) {
         boolean isHandled;
 

@@ -26,6 +26,7 @@ public class ConfigService implements IFloodlightService {
     private KafkaTopicsConfig topics;
 
     public void init(ConfigurationProvider provider) {
+        this.provider = provider;
         topics = provider.getConfiguration(KafkaTopicsConfig.class);
     }
 

@@ -113,7 +113,7 @@ public class PingService extends AbstractOfHandler implements IFloodlightService
     }
 
     private boolean matchByCookie(OFPacketIn packet) {
-        return packet.getCookie() != OF_CATCH_RULE_COOKIE;
+        return packet.getCookie() == OF_CATCH_RULE_COOKIE;
     }
 
     /**
