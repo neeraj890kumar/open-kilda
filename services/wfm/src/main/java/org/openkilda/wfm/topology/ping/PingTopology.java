@@ -143,7 +143,8 @@ public class PingTopology extends AbstractTopology<PingTopologyConfig> {
         TimeoutManager bolt = new TimeoutManager(topologyConfig.getTimeout());
         topology.setBolt(TimeoutManager.BOLT_ID, bolt)
                 .allGrouping(MonotonicTick.BOLT_ID)
-                .fieldsGrouping(PingRouter.BOLT_ID, new Fields(PingRouter.FIELD_ID_PING_ID));
+                .fieldsGrouping(
+                        PingRouter.BOLT_ID, PingRouter.STREAM_REQUEST_ID, new Fields(PingRouter.FIELD_ID_PING_ID));
     }
 
     private void resultDispatcher(TopologyBuilder topology) {
@@ -170,8 +171,8 @@ public class PingTopology extends AbstractTopology<PingTopologyConfig> {
         topology.setBolt(GroupCollector.BOLT_ID, bolt)
                 .allGrouping(MonotonicTick.BOLT_ID)
                 .fieldsGrouping(
-                        PeriodicResultManager.BOLT_ID, PeriodicResultManager.STREAM_GROUP_ID,
-                        new Fields(PeriodicResultManager.FIELD_ID_GROUP_ID));
+                        OnDemandResultManager.BOLT_ID, OnDemandResultManager.STREAM_GROUP_ID,
+                        new Fields(OnDemandResultManager.FIELD_ID_GROUP_ID));
     }
 
     private void statsProducer(TopologyBuilder topology) {

@@ -1,6 +1,6 @@
 # WFM topology management
 
-TOPOLOGY := wfm flow stats cache islstats opentsdb portstate nbworker
+TOPOLOGY := wfm flow stats cache islstats opentsdb portstate nbworker ping
 
 ENTRY_wfm := org.openkilda.wfm.topology.event.OFEventWFMTopology
 ENTRY_flow := org.openkilda.wfm.topology.flow.FlowTopology
@@ -10,6 +10,7 @@ ENTRY_islstats := org.openkilda.wfm.topology.islstats.IslStatsTopology
 ENTRY_opentsdb := org.openkilda.wfm.topology.opentsdb.OpenTSDBTopology
 ENTRY_portstate := org.openkilda.wfm.topology.portstate.PortStateTopology
 ENTRY_nbworker := org.openkilda.wfm.topology.nbworker.NbWorkerTopology
+ENTRY_ping := org.openkilda.wfm.topology.ping.PingTopology
 
 TOPOLOGY_JAR := target/WorkflowManager-1.0-SNAPSHOT-jar-with-dependencies.jar
 TOPOLOGY_CONFIG := topology.properties

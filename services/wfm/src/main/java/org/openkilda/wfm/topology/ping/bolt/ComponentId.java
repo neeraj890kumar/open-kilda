@@ -18,8 +18,8 @@ package org.openkilda.wfm.topology.ping.bolt;
 public enum ComponentId {
     MONOTONIC_TICK("monotonic.tick"),
 
-    INPUT("speaker"),
-    INPUT_DECODER("speaker.decoder"),
+    INPUT("input"),
+    INPUT_DECODER("input.decoder"),
     INPUT_ROUTER("input.router"),
 
     FLOW_FETCHER("flow_fetcher"),
@@ -29,7 +29,7 @@ public enum ComponentId {
     TIMEOUT_MANAGER("timeout_manager"),
     RESULT_DISPATCHER("result.dispatcher"),
     PERIODIC_RESULT_MANAGER("result_manager.periodic"),
-    MANUAL_RESULT_MANAGER("result_manager.manual"),
+    ON_DEMAND_RESULT_MANAGER("result_manager.manual"),
     GROUP_COLLECTOR("group_collector"),
     STATS_PRODUCER("stats_producer"),
     FAIL_REPORTER("fail_reporter"),

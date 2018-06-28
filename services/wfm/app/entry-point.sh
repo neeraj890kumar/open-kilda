@@ -16,6 +16,8 @@
 
 set -e
 
+PATH=${PATH}:/opt/storm/bin
+
 cd /app
 make kill-all
-exec deploy-all
+exec make deploy-all

@@ -35,7 +35,7 @@ import java.util.List;
 
 @Slf4j
 public class OnDemandResultManager extends ResultManager {
-    public static final String BOLT_ID = ComponentId.MANUAL_RESULT_MANAGER.toString();
+    public static final String BOLT_ID = ComponentId.ON_DEMAND_RESULT_MANAGER.toString();
 
     public static final Fields STREAM_FIELDS = new Fields(NorthboundEncoder.FIELD_ID_PAYLOAD, FIELD_ID_CONTEXT);
 
