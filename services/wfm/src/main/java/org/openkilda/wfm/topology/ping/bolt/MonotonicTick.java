@@ -40,7 +40,7 @@ public class MonotonicTick extends AbstractTick {
 
         this.pingInterval = pingInterval;
         if (this.pingInterval < 1) {
-            throw new IllegalArgumentException("");
+            throw new IllegalArgumentException(String.format("Invalid pingInterval value %d < 1", this.pingInterval));
         }
     }
 
@@ -52,7 +52,7 @@ public class MonotonicTick extends AbstractTick {
     }
 
     private void pingTick(Tuple input) {
-        if (pingSequenceIndex++ < pingInterval) {
+        if (++pingSequenceIndex <= pingInterval) {
             return;
         }
 

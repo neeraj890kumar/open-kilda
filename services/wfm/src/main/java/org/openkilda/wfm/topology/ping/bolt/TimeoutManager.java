@@ -48,9 +48,6 @@ public class TimeoutManager extends Abstract {
     public static final Fields STREAM_RESPONSE_FIELDS = new Fields(FIELD_ID_FLOW_ID, FIELD_ID_PING, FIELD_ID_CONTEXT);
     public static final String STREAM_RESPONSE_ID = "response";
 
-    public static final Fields STREAM_TIMEOUT_FIELDS = STREAM_RESPONSE_FIELDS;
-    public static final String STREAM_TIMEOUT_ID = "timeout";
-
     private final long pingTimeout;
 
     private ExpirableMap<UUID, TimeoutDescriptor> pendingPings;
@@ -93,6 +90,7 @@ public class TimeoutManager extends Abstract {
 
     private void handleTimeTick(Tuple input) {
         final long now = input.getLongByField(MonotonicTick.FIELD_ID_TIME_MILLIS);
+        log.debug("Pending ping queue size: {}", pendingPings.size());
         for (TimeoutDescriptor descriptor : pendingPings.expire(now)) {
             emitTimeout(input, descriptor, now);
         }
@@ -101,6 +99,7 @@ public class TimeoutManager extends Abstract {
     private void handleRequest(Tuple input) throws PipelineException {
         PingContext pingContext = pullPingContext(input);
         CommandContext commandContext = pullContext(input);
+        log.debug("Schedule timeout for {}", pingContext);
 
         scheduleTimeout(pingContext, commandContext);
         emitRequest(input, pingContext, commandContext);
@@ -108,6 +107,8 @@ public class TimeoutManager extends Abstract {
 
     private void handleResponse(Tuple input) throws PipelineException {
         PingResponse response = pullPingResponse(input);
+        log.debug("Got ping response pingId={}", response.getPingId());
+
         TimeoutDescriptor descriptor = pendingPings.remove(response.getPingId());
         if (descriptor == null) {
             log.warn("There is no pending request matching ping response {}", response.getPingId());
@@ -158,8 +159,9 @@ public class TimeoutManager extends Abstract {
                 .timestamp(timestamp)
                 .error(Errors.TIMEOUT)
                 .build();
+        log.debug("{} is timed out", pingTimeout);
         Values output = new Values(pingTimeout.getFlowId(), pingTimeout, descriptor.getCommandContext());
-        getOutput().emit(STREAM_TIMEOUT_ID, input, output);
+        getOutput().emit(STREAM_RESPONSE_ID, input, output);
     }
 
     private PingResponse pullPingResponse(Tuple input) throws PipelineException {
@@ -170,6 +172,5 @@ public class TimeoutManager extends Abstract {
     public void declareOutputFields(OutputFieldsDeclarer outputManager) {
         outputManager.declareStream(STREAM_REQUEST_ID, STREAM_REQUEST_FIELDS);
         outputManager.declareStream(STREAM_RESPONSE_ID, STREAM_RESPONSE_FIELDS);
-        outputManager.declareStream(STREAM_TIMEOUT_ID, STREAM_TIMEOUT_FIELDS);
     }
 }

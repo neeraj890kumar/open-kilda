@@ -101,7 +101,7 @@ public class PingTopology extends AbstractTopology<PingTopologyConfig> {
     private void inputRouter(TopologyBuilder topology) {
         InputRouter bolt = new InputRouter();
         topology.setBolt(InputRouter.BOLT_ID, bolt)
-                .shuffleGrouping(ComponentId.INPUT.toString());
+                .shuffleGrouping(InputDecoder.BOLT_ID);
     }
 
     private void flowFetcher(TopologyBuilder topology) {
@@ -141,10 +141,11 @@ public class PingTopology extends AbstractTopology<PingTopologyConfig> {
 
     private void timeoutManager(TopologyBuilder topology) {
         TimeoutManager bolt = new TimeoutManager(topologyConfig.getTimeout());
+        final Fields pingIdGrouping = new Fields(PingRouter.FIELD_ID_PING_ID);
         topology.setBolt(TimeoutManager.BOLT_ID, bolt)
                 .allGrouping(MonotonicTick.BOLT_ID)
-                .fieldsGrouping(
-                        PingRouter.BOLT_ID, PingRouter.STREAM_REQUEST_ID, new Fields(PingRouter.FIELD_ID_PING_ID));
+                .fieldsGrouping(PingRouter.BOLT_ID, PingRouter.STREAM_REQUEST_ID, pingIdGrouping)
+                .fieldsGrouping(PingRouter.BOLT_ID, PingRouter.STREAM_RESPONSE_ID, pingIdGrouping);
     }
 
     private void resultDispatcher(TopologyBuilder topology) {
@@ -207,7 +208,7 @@ public class PingTopology extends AbstractTopology<PingTopologyConfig> {
         topology.setBolt(OtsdbEncoder.BOLT_ID, bolt)
                 .shuffleGrouping(StatsProducer.BOLT_ID);
 
-        KafkaBolt output = createKafkaBolt(topologyConfig.getKafkaStatsTopic());
+        KafkaBolt output = createKafkaBolt(topologyConfig.getKafkaOtsdbTopic());
         topology.setBolt(ComponentId.OTSDB_OUTPUT.toString(), output)
                 .shuffleGrouping(OtsdbEncoder.BOLT_ID);
     }

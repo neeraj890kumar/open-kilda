@@ -16,6 +16,7 @@
 package org.openkilda.wfm.share.bolt;
 
 import org.openkilda.wfm.AbstractBolt;
+import org.openkilda.wfm.CommandContext;
 
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.tuple.Fields;
@@ -27,7 +28,7 @@ import java.util.Map;
 
 public abstract class AbstractTick extends AbstractBolt {
     public static final String FIELD_ID_TIME_MILLIS = "time";
-    public static final Fields STREAM_FIELDS = new Fields(FIELD_ID_TIME_MILLIS);
+    public static final Fields STREAM_FIELDS = new Fields(FIELD_ID_TIME_MILLIS, FIELD_ID_CONTEXT);
 
     private final Integer interval;
 
@@ -45,7 +46,7 @@ public abstract class AbstractTick extends AbstractBolt {
     }
 
     protected void produceTick(Tuple input) {
-        getOutput().emit(input, new Values(System.currentTimeMillis()));
+        getOutput().emit(input, new Values(System.currentTimeMillis(), new CommandContext()));
     }
 
     @Override

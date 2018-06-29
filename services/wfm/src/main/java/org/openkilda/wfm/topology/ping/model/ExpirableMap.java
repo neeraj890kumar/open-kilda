@@ -85,4 +85,8 @@ public class ExpirableMap<K, V extends Expirable<K>> {
 
         return removed;
     }
+
+    public int size() {
+        return map.size();
+    }
 }

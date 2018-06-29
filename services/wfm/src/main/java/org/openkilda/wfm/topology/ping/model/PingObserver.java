@@ -145,8 +145,7 @@ public class PingObserver {
     private enum Event {
         TIME,
         STATE_OPERATIONAL,
-        STATE_FAIL,
-        STATE_REPORTED
+        STATE_FAIL
     }
 
     private enum State {

@@ -59,8 +59,8 @@ public interface PingTopologyConfig extends AbstractTopologyConfig {
         return getKafkaTopics().getFlowStatusTopic();
     }
 
-    default String getKafkaStatsTopic() {
-        return getKafkaTopics().getStatsTopic();
+    default String getKafkaOtsdbTopic() {
+        return getKafkaTopics().getOtsdbTopic();
     }
 
     @Configuration

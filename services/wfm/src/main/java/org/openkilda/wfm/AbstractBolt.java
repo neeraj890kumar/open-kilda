@@ -34,6 +34,9 @@ public abstract class AbstractBolt extends BaseRichBolt {
 
     @Override
     public void execute(Tuple input) {
+        log.debug(
+                "{} input tuple from {}:{} size {}",
+                getClass().getName(), input.getSourceComponent(), input.getSourceStreamId(), input.size());
         try {
             handleInput(input);
         } catch (Exception e) {

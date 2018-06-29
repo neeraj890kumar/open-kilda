@@ -43,7 +43,8 @@ public class PingRouter extends Abstract {
             FIELD_ID_PING_ID, FIELD_ID_PING, FIELD_ID_CONTEXT);
     public static final String STREAM_REQUEST_ID = "request";
 
-    public static final Fields STREAM_RESPONSE_FIELDS = STREAM_REQUEST_FIELDS;
+    public static final Fields STREAM_RESPONSE_FIELDS = new Fields(
+            FIELD_ID_PING_ID, FIELD_ID_RESPONSE, FIELD_ID_CONTEXT);
     public static final String STREAM_RESPONSE_ID = "response";
 
     @Override
