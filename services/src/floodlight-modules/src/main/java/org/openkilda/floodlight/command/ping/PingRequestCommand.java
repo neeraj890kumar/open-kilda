@@ -104,6 +104,7 @@ public class PingRequestCommand extends Abstract {
         Ethernet packet = pingService.wrapData(ping, signedData);
         OFMessage message = makePacketOut(sw, packet.serialize());
 
+        logPing.info("Send ping {}", ping);
         try {
             batchService.write(ImmutableList.of(new OfRequestResponse(sw.getId(), message)))
                     .get();

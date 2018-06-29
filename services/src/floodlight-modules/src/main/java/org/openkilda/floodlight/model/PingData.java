@@ -34,6 +34,7 @@ public class PingData implements ISignPayload {
     private long recvTime = 0;
     private long senderLatency = 0;
 
+    private final Short sourceVlan;
     private final DatapathId source;
     private final DatapathId dest;
     private final UUID pingId;
@@ -46,11 +47,12 @@ public class PingData implements ISignPayload {
 
         PingData data;
         try {
+            Integer sourceVlan = token.getClaim(makeJwtKey("sourceVlan")).asInt();
             DatapathId source = DatapathId.of(token.getClaim(makeJwtKey("source")).asLong());
             DatapathId dest = DatapathId.of(token.getClaim(makeJwtKey("dest")).asLong());
             UUID packetId = UUID.fromString(token.getClaim(makeJwtKey("id")).asString());
 
-            data = new PingData(source, dest, packetId);
+            data = new PingData(sourceVlan.shortValue(), source, dest, packetId);
             data.setSenderLatency(token.getClaim(makeJwtKey("senderLatency")).asLong());
             data.setSendTime(token.getClaim(makeJwtKey("time")).asLong());
             data.setRecvTime(recvTime);
@@ -68,10 +70,11 @@ public class PingData implements ISignPayload {
     public static PingData of(Ping ping) {
         DatapathId source = DatapathId.of(ping.getSource().getSwitchDpId());
         DatapathId dest = DatapathId.of(ping.getDest().getSwitchDpId());
-        return new PingData(source, dest, ping.getPingId());
+        return new PingData(ping.getSourceVlanId(), source, dest, ping.getPingId());
     }
 
-    public PingData(DatapathId source, DatapathId dest, UUID pingId) {
+    public PingData(Short sourceVlan, DatapathId source, DatapathId dest, UUID pingId) {
+        this.sourceVlan = sourceVlan;
         this.source = source;
         this.dest = dest;
         this.pingId = pingId;
@@ -81,6 +84,7 @@ public class PingData implements ISignPayload {
      * Populate data into JWT builder.
      */
     public JWTCreator.Builder toSign(JWTCreator.Builder token) {
+        token.withClaim(makeJwtKey("sourceVlan"), Integer.valueOf(sourceVlan));
         token.withClaim(makeJwtKey("source"), source.getLong());
         token.withClaim(makeJwtKey("dest"), dest.getLong());
         token.withClaim(makeJwtKey("id"), pingId.toString());
@@ -125,6 +129,10 @@ public class PingData implements ISignPayload {
 
     public void setSenderLatency(long senderLatency) {
         this.senderLatency = senderLatency;
+    }
+
+    public Short getSourceVlan() {
+        return sourceVlan;
     }
 
     public DatapathId getSource() {

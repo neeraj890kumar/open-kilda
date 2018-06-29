@@ -103,7 +103,6 @@ public class PathVerificationService implements IFloodlightModule, IOFMessageLis
     private IOFSwitchService switchService;
     private IRestApiService restApiService;
     private boolean isAlive = false;
-    // FIXME(surabujin): extra kafka producer - replace with "centralized" kafka producer
     private KafkaProducer<String, String> producer;
     private double islBandwidthQuotient = 1.0;
     private Algorithm algorithm;

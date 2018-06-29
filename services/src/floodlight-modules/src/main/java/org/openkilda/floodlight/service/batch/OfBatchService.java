@@ -16,9 +16,11 @@
 package org.openkilda.floodlight.service.batch;
 
 import org.openkilda.floodlight.SwitchUtils;
+import org.openkilda.floodlight.command.CommandContext;
 import org.openkilda.floodlight.model.OfBatchResult;
 import org.openkilda.floodlight.model.OfRequestResponse;
 import org.openkilda.floodlight.service.AbstractOfHandler;
+import org.openkilda.floodlight.utils.CommandContextFactory;
 
 import net.floodlightcontroller.core.FloodlightContext;
 import net.floodlightcontroller.core.IOFSwitch;
@@ -41,6 +43,10 @@ public class OfBatchService extends AbstractOfHandler implements IFloodlightServ
     private final HashMap<DatapathId, OfBatchSwitchQueue> pendingMap = new HashMap<>();
 
     private SwitchUtils switchUtils;
+
+    public OfBatchService(CommandContextFactory commandContextFactory) {
+        super(commandContextFactory);
+    }
 
     public void init(FloodlightModuleContext moduleContext) {
         switchUtils = new SwitchUtils(moduleContext.getServiceImpl(IOFSwitchService.class));
@@ -66,7 +72,7 @@ public class OfBatchService extends AbstractOfHandler implements IFloodlightServ
     }
 
     @Override
-    public boolean handle(IOFSwitch sw, OFMessage message, FloodlightContext context) {
+    public boolean handle(CommandContext commandContext, IOFSwitch sw, OFMessage message, FloodlightContext context) {
         DatapathId dpId = sw.getId();
         synchronized (pendingMap) {
             OfBatchSwitchQueue queue = pendingMap.get(dpId);

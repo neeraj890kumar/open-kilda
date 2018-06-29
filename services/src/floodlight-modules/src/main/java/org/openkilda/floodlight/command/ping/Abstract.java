@@ -25,10 +25,14 @@ import org.openkilda.messaging.info.InfoMessage;
 import org.openkilda.messaging.model.Ping;
 
 import net.floodlightcontroller.core.module.FloodlightModuleContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.UUID;
 
 abstract class Abstract extends Command {
+    protected static Logger logPing = LoggerFactory.getLogger("open-kilda.flows.PING");
+
     private final KafkaMessageProducer kafkaProducer;
     private final ConfigService configService;
     private final PingService pingService;

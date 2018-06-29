@@ -22,7 +22,6 @@ import org.openkilda.messaging.floodlight.response.PingResponse;
 import org.openkilda.messaging.model.PingMeters;
 
 import com.auth0.jwt.interfaces.DecodedJWT;
-import net.floodlightcontroller.core.IOFSwitch;
 import org.projectfloodlight.openflow.types.DatapathId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,11 +33,11 @@ public class PingResponseCommand extends Abstract {
     private final long latency;
     private final byte[] payload;
 
-    public PingResponseCommand(CommandContext context, IOFSwitch sw, byte[] payload) {
+    public PingResponseCommand(CommandContext context, DatapathId dpId, long latency, byte[] payload) {
         super(context);
 
-        this.datapathId = sw.getId();
-        this.latency = sw.getLatency().getValue();
+        this.datapathId = dpId;
+        this.latency = latency;
         this.payload = payload;
     }
 
@@ -50,19 +49,20 @@ public class PingResponseCommand extends Abstract {
             data = PingData.of(token);
             getContext().setCorrelationId(data.getPingId().toString());
         } catch (CorruptedNetworkDataException e) {
-            log.error(String.format("dpid:%s %s", datapathId, e));
+            logPing.error(String.format("dpid:%s %s", datapathId, e));
             return;
         }
 
         if (!data.getDest().equals(datapathId)) {
-            log.error("Catch flow verification package on %s while target is %s", datapathId, data.getDest());
+            logPing.error("Catch ping package on %s while target is %s", datapathId, data.getDest());
             return;
         }
 
         PingMeters meters = data.produceMeasurements(latency);
-        log.debug(
-                "Receive flow VERIFICATION package - packetId: {}, latency: {}",
-                data.getPingId(), meters.getNetworkLatency());
+        String pingId = String.format("ping{%s}", data.getPingId().toString());
+        logPing.info(
+                "Catch ping {} ===( {}, vlan: {}, latency: {}ms )===> {}",
+                data.getSource(), pingId, data.getSourceVlan(), meters.getNetworkLatency(), data.getDest());
 
         PingResponse response = new PingResponse(getContext().getCtime(), data.getPingId(), meters);
         sendResponse(response);

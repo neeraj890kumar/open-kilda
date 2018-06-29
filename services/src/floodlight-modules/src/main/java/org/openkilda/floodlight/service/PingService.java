@@ -17,10 +17,12 @@ package org.openkilda.floodlight.service;
 
 import org.openkilda.floodlight.SwitchUtils;
 import org.openkilda.floodlight.command.CommandContext;
+import org.openkilda.floodlight.command.ping.IPingResponseFactory;
 import org.openkilda.floodlight.command.ping.PingResponseCommand;
 import org.openkilda.floodlight.error.InvalidSignatureConfigurationException;
 import org.openkilda.floodlight.pathverification.PathVerificationService;
 import org.openkilda.floodlight.switchmanager.ISwitchManager;
+import org.openkilda.floodlight.utils.CommandContextFactory;
 import org.openkilda.floodlight.utils.DataSignature;
 import org.openkilda.messaging.model.Ping;
 
@@ -53,20 +55,25 @@ import java.util.Set;
 public class PingService extends AbstractOfHandler implements IFloodlightService {
     private static Logger log = LoggerFactory.getLogger(PingService.class);
 
-    private static final U64 OF_CATCH_RULE_COOKIE = U64.of(ISwitchManager.VERIFICATION_UNICAST_RULE_COOKIE);
+    static final U64 OF_CATCH_RULE_COOKIE = U64.of(ISwitchManager.VERIFICATION_UNICAST_RULE_COOKIE);
     private static final String NET_L3_ADDRESS = "127.0.0.2";
 
     private DataSignature signature = null;
     private SwitchUtils switchUtils = null;
 
-    private FloodlightModuleContext moduleContext;
+    private IPingResponseFactory responseFactory;
+
+    public PingService(CommandContextFactory commandContextFactory) {
+        super(commandContextFactory);
+    }
 
     /**
      * Initialize internal data structures. Called by module that own this service. Called after all dependencies have
      * been loaded.
      */
-    public void init(FloodlightModuleContext moduleContext) throws FloodlightModuleException {
-        this.moduleContext = moduleContext;
+    public void init(FloodlightModuleContext moduleContext, IPingResponseFactory responseFactory)
+            throws FloodlightModuleException {
+        this.responseFactory = responseFactory;
 
         // FIXME(surabujin): avoid usage foreign module configuration
         Map<String, String> config = moduleContext.getConfigParams(PathVerificationService.class);
@@ -81,7 +88,7 @@ public class PingService extends AbstractOfHandler implements IFloodlightService
     }
 
     @Override
-    public boolean handle(IOFSwitch sw, OFMessage message, FloodlightContext context) {
+    public boolean handle(CommandContext commandContext, IOFSwitch sw, OFMessage message, FloodlightContext context) {
         OFPacketIn packet = (OFPacketIn) message;
 
         Ethernet eth = IFloodlightProviderService.bcStore.get(context, IFloodlightProviderService.CONTEXT_PI_PAYLOAD);
@@ -91,6 +98,7 @@ public class PingService extends AbstractOfHandler implements IFloodlightService
             if (! matchByCookie(packet)) {
                 return false;
             }
+            log.debug("Match PACKET_IN from {} by cookie {}", sw.getId(), OF_CATCH_RULE_COOKIE);
             mustMatch = true;
         } catch (UnsupportedOperationException e) {
             log.debug("Unable to match OFPacketIn by cookie, fallback to payload match: {}", e.toString());
@@ -102,18 +110,19 @@ public class PingService extends AbstractOfHandler implements IFloodlightService
             if (mustMatch) {
                 log.error("Got invalid ping package on {}", sw.getId());
             }
+            log.debug("Do not match PACKET_IN from {}", sw.getId());
             return false;
         }
+        log.debug("Do match PACKET_IN from {}", sw.getId());
 
-        CommandContext commandContext = new CommandContext(moduleContext);
-        PingResponseCommand command = new PingResponseCommand(commandContext, sw, payload);
+        PingResponseCommand command = responseFactory.produce(commandContext, sw, payload);
         command.execute();
 
         return true;
     }
 
     private boolean matchByCookie(OFPacketIn packet) {
-        return packet.getCookie() == OF_CATCH_RULE_COOKIE;
+        return OF_CATCH_RULE_COOKIE.equals(packet.getCookie());
     }
 
     /**
