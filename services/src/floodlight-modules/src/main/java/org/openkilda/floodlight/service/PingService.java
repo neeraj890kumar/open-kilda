@@ -112,8 +112,9 @@ public class PingService extends AbstractOfHandler implements IFloodlightService
             }
             log.debug("Do not match PACKET_IN from {}", sw.getId());
             return false;
+        } else if (!mustMatch) {
+            log.debug("Match PACKET_IN from {} by payload analise", sw.getId());
         }
-        log.debug("Do match PACKET_IN from {}", sw.getId());
 
         PingResponseCommand command = responseFactory.produce(commandContext, sw, payload);
         command.execute();
