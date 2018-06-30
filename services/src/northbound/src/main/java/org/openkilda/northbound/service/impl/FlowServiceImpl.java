@@ -718,11 +718,10 @@ public class FlowServiceImpl implements FlowService {
          */
 
         List<Flow> flows = pathComputer.getFlow(flowId);
-        if (flows == null) {
+        logger.debug("VALIDATE FLOW: Found Flows: count = {}", flows.size());
+        if (flows.size() == 0) {
             return null;
         }
-
-        logger.debug("VALIDATE FLOW: Found Flows: count = {}", flows.size());
 
         /*
          * Since we are getting switch rules, we can use a set.

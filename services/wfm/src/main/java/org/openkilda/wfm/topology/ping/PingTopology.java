@@ -112,7 +112,7 @@ public class PingTopology extends AbstractTopology<PingTopologyConfig> {
         FlowFetcher bolt = new FlowFetcher(auth);
         topology.setBolt(FlowFetcher.BOLT_ID, bolt)
                 .globalGrouping(MonotonicTick.BOLT_ID, MonotonicTick.STREAM_PING_ID)
-                .shuffleGrouping(InputRouter.BOLT_ID, InputRouter.STREAM_PING_REQUEST_ID);
+                .shuffleGrouping(InputRouter.BOLT_ID, InputRouter.STREAM_ON_DEMAND_REQUEST_ID);
     }
 
     private void pingProducer(TopologyBuilder topology) {

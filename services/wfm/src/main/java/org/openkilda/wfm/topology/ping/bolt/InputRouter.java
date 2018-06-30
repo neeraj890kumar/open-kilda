@@ -22,6 +22,7 @@ import org.openkilda.messaging.command.flow.FlowPingRequest;
 import org.openkilda.messaging.floodlight.response.PingResponse;
 import org.openkilda.messaging.info.InfoData;
 import org.openkilda.messaging.info.InfoMessage;
+import org.openkilda.wfm.CommandContext;
 import org.openkilda.wfm.error.AbstractException;
 import org.openkilda.wfm.error.PipelineException;
 
@@ -42,7 +43,7 @@ public class InputRouter extends Abstract {
 
     public static final Fields STREAM_PING_REQUEST_FIELDS = new Fields(
             FIELD_ID_PING_REQUEST, FIELD_ID_CONTEXT);
-    public static final String STREAM_PING_REQUEST_ID = "ping_request";
+    public static final String STREAM_ON_DEMAND_REQUEST_ID = "ping_request";
 
     @Override
     protected void handleInput(Tuple input) throws AbstractException {
@@ -68,9 +69,11 @@ public class InputRouter extends Abstract {
     }
 
     private void routeCommandMessage(Tuple input, CommandMessage message) throws PipelineException {
-        CommandData data = message.getData();
+        final CommandContext commandContext = pullContext(input);
+        final CommandData data = message.getData();
         if (data instanceof FlowPingRequest) {
-            emit(input, new Values(data), STREAM_PING_REQUEST_ID);
+            Values output = new Values(data, commandContext);
+            emit(input, output, STREAM_ON_DEMAND_REQUEST_ID);
         } else {
             unhandledInput(input);
         }
@@ -88,6 +91,6 @@ public class InputRouter extends Abstract {
     @Override
     public void declareOutputFields(OutputFieldsDeclarer outputManager) {
         outputManager.declareStream(STREAM_SPEAKER_PING_RESPONSE_ID, STREAM_SPEAKER_PING_RESPONSE_FIELDS);
-        outputManager.declareStream(STREAM_PING_REQUEST_ID, STREAM_PING_REQUEST_FIELDS);
+        outputManager.declareStream(STREAM_ON_DEMAND_REQUEST_ID, STREAM_PING_REQUEST_FIELDS);
     }
 }

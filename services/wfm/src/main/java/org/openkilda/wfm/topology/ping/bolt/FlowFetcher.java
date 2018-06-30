@@ -32,12 +32,14 @@ import org.openkilda.wfm.topology.ping.model.FlowsHeap;
 import org.openkilda.wfm.topology.ping.model.PingContext;
 import org.openkilda.wfm.topology.ping.model.PingContext.Kinds;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
 
+@Slf4j
 public class FlowFetcher extends Abstract {
     public static final String BOLT_ID = ComponentId.FLOW_FETCHER.toString();
 
@@ -67,7 +69,7 @@ public class FlowFetcher extends Abstract {
         String component = input.getSourceComponent();
 
         if (MonotonicTick.BOLT_ID.equals(component)) {
-            handleTimerTrigger(input);
+            handlePeriodicRequest(input);
         } else if (InputRouter.BOLT_ID.equals(component)) {
             handleOnDemandRequest(input);
         } else {
@@ -75,7 +77,8 @@ public class FlowFetcher extends Abstract {
         }
     }
 
-    private void handleTimerTrigger(Tuple input) throws PipelineException {
+    private void handlePeriodicRequest(Tuple input) throws PipelineException {
+        log.debug("Handle periodic ping request");
         PathComputerFlowFetcher fetcher = new PathComputerFlowFetcher(pathComputer);
 
         final CommandContext commandContext = pullContext(input);
@@ -92,6 +95,7 @@ public class FlowFetcher extends Abstract {
     }
 
     private void handleOnDemandRequest(Tuple input) throws PipelineException {
+        log.debug("Handle on demand ping request");
         FlowPingRequest request = pullOnDemandRequest(input);
         BidirectionalFlow flow;
         try {
