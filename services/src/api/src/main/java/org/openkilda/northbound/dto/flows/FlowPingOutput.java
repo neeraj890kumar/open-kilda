@@ -31,6 +31,9 @@ public class FlowPingOutput {
     @JsonProperty("reverse")
     private UniFlowPingOutput reverse;
 
+    @JsonProperty("error")
+    private String error;
+
     // To satisfy mapstruct
     public FlowPingOutput() { }
 
@@ -39,9 +42,11 @@ public class FlowPingOutput {
     public FlowPingOutput(
             @JsonProperty("flow_id") String flowId,
             @JsonProperty("forward") UniFlowPingOutput forward,
-            @JsonProperty("reverse") UniFlowPingOutput reverse) {
+            @JsonProperty("reverse") UniFlowPingOutput reverse,
+            @JsonProperty("error") String error) {
         this.flowId = flowId;
         this.forward = forward;
         this.reverse = reverse;
+        this.error = error;
     }
 }

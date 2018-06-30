@@ -105,7 +105,8 @@ public class FlowFetcher extends Abstract {
             }
             flow = collector.make();
         } catch (IllegalArgumentException e) {
-            emitOnDemandResponse(input, request, String.format("Can't read flow %s: %s", request.getFlowId(), e));
+            emitOnDemandResponse(input, request, String.format(
+                    "Can't read flow %s: %s", request.getFlowId(), e.getMessage()));
             return;
         }
 

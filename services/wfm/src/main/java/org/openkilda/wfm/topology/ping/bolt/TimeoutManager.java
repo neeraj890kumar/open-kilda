@@ -99,7 +99,6 @@ public class TimeoutManager extends Abstract {
     private void handleRequest(Tuple input) throws PipelineException {
         PingContext pingContext = pullPingContext(input);
         CommandContext commandContext = pullContext(input);
-        log.debug("Schedule timeout for {}", pingContext);
 
         scheduleTimeout(pingContext, commandContext);
         emitRequest(input, pingContext, commandContext);
@@ -119,6 +118,8 @@ public class TimeoutManager extends Abstract {
     }
 
     private void scheduleTimeout(PingContext pingContext, CommandContext commandContext) {
+        log.debug("Schedule timeout for {}", pingContext);
+
         long expireAt = System.currentTimeMillis();
         if (pingContext.getTimestamp() != null) {
             expireAt += pingContext.getTimeout();
