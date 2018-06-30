@@ -69,7 +69,7 @@ public class PingTopology extends AbstractTopology<PingTopologyConfig> {
         timeoutManager(topology);
         resultDispatcher(topology);
         periodicResultManager(topology);
-        manualResultManager(topology);
+        onDemandResultManager(topology);
         groupCollector(topology);
         statsProducer(topology);
         failReporter(topology);
@@ -157,14 +157,14 @@ public class PingTopology extends AbstractTopology<PingTopologyConfig> {
     private void periodicResultManager(TopologyBuilder topology) {
         PeriodicResultManager bolt = new PeriodicResultManager();
         topology.setBolt(PeriodicResultManager.BOLT_ID, bolt)
-                .shuffleGrouping(ResultDispatcher.BOLT_ID, ResultDispatcher.STREAM_PERIODIC_ID)
-                .shuffleGrouping(GroupCollector.BOLT_ID, GroupCollector.STREAM_ON_DEMAND_ID);
+                .shuffleGrouping(ResultDispatcher.BOLT_ID, ResultDispatcher.STREAM_PERIODIC_ID);
     }
 
-    private void manualResultManager(TopologyBuilder topology) {
+    private void onDemandResultManager(TopologyBuilder topology) {
         OnDemandResultManager bolt = new OnDemandResultManager();
         topology.setBolt(OnDemandResultManager.BOLT_ID, bolt)
-                .shuffleGrouping(ResultDispatcher.BOLT_ID, ResultDispatcher.STREAM_MANUAL_ID);
+                .shuffleGrouping(ResultDispatcher.BOLT_ID, ResultDispatcher.STREAM_MANUAL_ID)
+                .shuffleGrouping(GroupCollector.BOLT_ID, GroupCollector.STREAM_ON_DEMAND_ID);
     }
 
     private void groupCollector(TopologyBuilder topology) {

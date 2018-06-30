@@ -136,6 +136,8 @@ public class TimeoutManager extends Abstract {
 
     private void emitRequest(Tuple input, PingContext pingContext, CommandContext commandContext) {
         final PingRequest request = new PingRequest(pingContext.getPing());
+        log.debug("Emit {} ping request {}", pingContext.getKind(), request);
+
         Values output = new Values(request, commandContext);
         getOutput().emit(STREAM_REQUEST_ID, input, output);
     }

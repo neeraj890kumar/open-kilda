@@ -19,7 +19,6 @@ import org.openkilda.messaging.model.Ping;
 import org.openkilda.wfm.error.AbstractException;
 import org.openkilda.wfm.error.PipelineException;
 import org.openkilda.wfm.topology.ping.model.PingContext;
-import org.openkilda.wfm.topology.ping.model.PingContext.Kinds;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.storm.topology.OutputFieldsDeclarer;
@@ -63,12 +62,7 @@ public class Blacklist extends Abstract {
 
     private void filter(Tuple input, PingContext pingContext) throws PipelineException {
         final Ping ping = pingContext.getPing();
-        final Kinds kind = pingContext.getKind();
 
-        if (kind != Kinds.PERIODIC) {
-            log.debug("{} can\'t be blacklisted (kind {})", ping, kind);
-            return;
-        }
         if (blacklist.contains(ping)) {
             log.debug("{} canceled due to blacklist match", pingContext);
             return;

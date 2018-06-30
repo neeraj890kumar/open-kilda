@@ -22,7 +22,6 @@ import org.openkilda.messaging.command.flow.FlowPingRequest;
 import org.openkilda.messaging.floodlight.response.PingResponse;
 import org.openkilda.messaging.info.InfoData;
 import org.openkilda.messaging.info.InfoMessage;
-import org.openkilda.wfm.CommandContext;
 import org.openkilda.wfm.error.AbstractException;
 import org.openkilda.wfm.error.PipelineException;
 
@@ -69,11 +68,9 @@ public class InputRouter extends Abstract {
     }
 
     private void routeCommandMessage(Tuple input, CommandMessage message) throws PipelineException {
-        final CommandContext commandContext = pullContext(input);
         final CommandData data = message.getData();
         if (data instanceof FlowPingRequest) {
-            Values output = new Values(data, commandContext);
-            emit(input, output, STREAM_ON_DEMAND_REQUEST_ID);
+            emit(input, new Values(data), STREAM_ON_DEMAND_REQUEST_ID);
         } else {
             unhandledInput(input);
         }

@@ -19,6 +19,7 @@ import org.openkilda.messaging.floodlight.response.PingResponse;
 import org.openkilda.wfm.error.AbstractException;
 import org.openkilda.wfm.error.PipelineException;
 import org.openkilda.wfm.topology.ping.model.PingContext;
+import org.openkilda.wfm.topology.ping.model.PingContext.Kinds;
 
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.tuple.Fields;
@@ -65,14 +66,16 @@ public class PingRouter extends Abstract {
 
     private void routePingProducer(Tuple input) throws PipelineException {
         PingContext pingContext = pullPingContext(input);
-        Values output = new Values(pingContext.getPing(), pingContext, pullContext(input));
-        getOutput().emit(STREAM_BLACKLIST_FILTER_ID, input, output);
+        if (pingContext.getKind() == Kinds.PERIODIC) {
+            emitBalcklist(input, pingContext);
+        } else {
+            emitRequest(input, pingContext);
+        }
     }
 
     private void routeBlacklist(Tuple input) throws PipelineException {
         PingContext pingContext = pullPingContext(input);
-        Values output = new Values(pingContext.getPingId(), pingContext, pullContext(input));
-        getOutput().emit(STREAM_REQUEST_ID, input, output);
+        emitRequest(input, pingContext);
     }
 
     private void routePingResponse(Tuple input) throws PipelineException {
@@ -85,6 +88,16 @@ public class PingRouter extends Abstract {
         PingContext pingContext = pullPingContext(input);
         Values output = new Values(pingContext.getPing(), pingContext, pullContext(input));
         getOutput().emit(STREAM_BLACKLIST_UPDATE_ID, input, output);
+    }
+
+    private void emitBalcklist(Tuple input, PingContext pingContext) throws PipelineException {
+        Values output = new Values(pingContext.getPing(), pingContext, pullContext(input));
+        getOutput().emit(STREAM_BLACKLIST_FILTER_ID, input, output);
+    }
+
+    private void emitRequest(Tuple input, PingContext pingContext) throws PipelineException {
+        Values output = new Values(pingContext.getPingId(), pingContext, pullContext(input));
+        getOutput().emit(STREAM_REQUEST_ID, input, output);
     }
 
     private PingResponse pullPingResponse(Tuple input) throws PipelineException {

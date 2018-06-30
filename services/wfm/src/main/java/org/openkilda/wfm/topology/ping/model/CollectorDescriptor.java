@@ -36,13 +36,14 @@ public class CollectorDescriptor extends Expirable<GroupId> {
     /**
      * Store ping data.
      */
-    public void add(PingContext pingContext) {
+    public int add(PingContext pingContext) {
         if (! seenRecords.add(pingContext.getPingId())) {
             throw new IllegalArgumentException(String.format(
                     "groupId collision detected - ping %s already stored in groupId %s",
                     pingContext.getPing(), getGroupId()));
         }
         records.add(pingContext);
+        return records.size();
     }
 
     public Group makeGroup() {
