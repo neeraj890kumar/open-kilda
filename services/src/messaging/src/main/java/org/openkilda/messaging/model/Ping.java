@@ -27,7 +27,9 @@ public class Ping implements Serializable {
     public enum Errors {
         TIMEOUT,
         WRITE_FAILURE,
-        NOT_CAPABLE
+        NOT_CAPABLE,
+        SOURCE_NOT_AVAILABLE,
+        DEST_NOT_AVAILABLE
     }
 
     @JsonProperty(value = "ping_id", required = true)

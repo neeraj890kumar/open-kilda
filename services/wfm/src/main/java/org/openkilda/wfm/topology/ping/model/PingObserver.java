@@ -15,6 +15,8 @@
 
 package org.openkilda.wfm.topology.ping.model;
 
+import org.openkilda.messaging.model.Ping;
+
 import lombok.Builder;
 import lombok.Data;
 
@@ -25,6 +27,7 @@ public class PingObserver {
     private final long garbageDelay;
 
     private State state = State.UNKNOWN;
+    private State realState = State.UNKNOWN;
     private long lastStateTransitionAt = 0L;
 
     @Builder
@@ -35,124 +38,228 @@ public class PingObserver {
     }
 
     public void markOperational(long timestamp) {
-        dispatch(Event.STATE_OPERATIONAL, timestamp);
+        dispatch(Event.SUCCESS, timestamp);
     }
 
-    public void markFailed(long timestamp) {
-        dispatch(Event.STATE_FAIL, timestamp);
+    public void markFailed(long timestamp, Ping.Errors error) {
+        dispatch(errorToEventMap(error), timestamp);
     }
 
-    public void timeTick(long timestamp) {
+    public State timeTick(long timestamp) {
         dispatch(Event.TIME, timestamp);
+        return state;
     }
 
+    public State getState() {
+        return state;
+    }
+
+    /**
+     * Expose failing state of this ping "stream".
+     */
     public boolean isFail() {
-        return state == State.FAIL;
-    }
+        boolean result;
+        switch (state) {
+            case FAIL:
+            case UNRELIABLE:
+                result = true;
+                break;
 
-    public boolean isGarbage() {
-        return state == State.GARBAGE;
+            default:
+                result = false;
+        }
+        return result;
     }
 
     private void dispatch(Event event, long timestamp) {
-        switch (state) {
+        switch (realState) {
             case UNKNOWN:
             case GARBAGE:
-                dispatchUnknown(event, timestamp);
+                stateUnknown(event, timestamp);
                 break;
             case OPERATIONAL:
-                dispatchOperational(event, timestamp);
+                stateOperational(event, timestamp);
                 break;
             case PRE_FAIL:
-                dispatchPreFail(event, timestamp);
+                statePreFail(event, timestamp);
                 break;
             case FAIL:
-                dispatchFail(event, timestamp);
+                stateFail(event, timestamp);
+                break;
+            case PRE_UNRELIABLE:
+                statePreUnreliable(event, timestamp);
+                break;
+            case UNRELIABLE:
+                stateUnreliable(event, timestamp);
                 break;
 
             default:
-                throw new IllegalArgumentException(String.format("Unknown %s value %s", State.class.getName(), state));
+                throw new IllegalArgumentException(String.format(
+                        "Unsupported %s value %s", State.class.getName(), realState));
         }
     }
 
-    private void dispatchUnknown(Event event, long timestamp) {
+    private void stateUnknown(Event event, long timestamp) {
         switch (event) {
             case TIME:
                 if (lastStateTransitionAt + garbageDelay < timestamp) {
-                    stateTransition(State.GARBAGE, timestamp);
+                    doStateTransition(State.GARBAGE, timestamp);
                 }
                 break;
-            case STATE_OPERATIONAL:
-                stateTransition(State.OPERATIONAL, timestamp);
+            case SUCCESS:
+                doStateTransition(State.OPERATIONAL, timestamp);
                 break;
-            case STATE_FAIL:
-                stateTransition(State.PRE_FAIL, timestamp);
+            case ERROR:
+                doStateTransition(State.PRE_FAIL, timestamp);
+                break;
+            case OPERATIONAL_ERROR:
+                doStateTransition(State.PRE_UNRELIABLE, timestamp);
                 break;
 
             default:
         }
     }
 
-    private void dispatchOperational(Event event, long timestamp) {
+    private void stateOperational(Event event, long timestamp) {
         switch (event) {
-            case STATE_FAIL:
-                stateTransition(State.PRE_FAIL, timestamp);
+            case ERROR:
+                doStateTransition(State.PRE_FAIL, timestamp);
+                break;
+            case OPERATIONAL_ERROR:
+                doStateTransition(State.PRE_UNRELIABLE, timestamp);
                 break;
 
             default:
         }
     }
 
-    private void dispatchPreFail(Event event, long timestamp) {
+    private void statePreFail(Event event, long timestamp) {
         switch (event) {
             case TIME:
                 if (lastStateTransitionAt + failDelay < timestamp) {
-                    stateTransition(State.FAIL, timestamp);
+                    doStateTransition(State.FAIL, timestamp);
                 }
                 break;
-            case STATE_OPERATIONAL:
-                stateTransition(State.OPERATIONAL, timestamp);
+            case SUCCESS:
+                doStateTransition(State.OPERATIONAL, timestamp);
+                break;
+            case OPERATIONAL_ERROR:
+                doStateTransition(State.PRE_UNRELIABLE);
                 break;
 
             default:
         }
     }
 
-    private void dispatchFail(Event event, long timestamp) {
+    private void stateFail(Event event, long timestamp) {
         switch (event) {
             case TIME:
                 if (lastStateTransitionAt + failReset < timestamp) {
-                    stateTransition(State.UNKNOWN, timestamp);
+                    doStateTransition(State.UNKNOWN, timestamp);
                 }
                 break;
-            case STATE_OPERATIONAL:
-                stateTransition(State.OPERATIONAL, timestamp);
+            case SUCCESS:
+                doStateTransition(State.OPERATIONAL, timestamp);
+                break;
+            case OPERATIONAL_ERROR:
+                doStateTransition(State.PRE_UNRELIABLE, timestamp);
                 break;
 
             default:
         }
     }
 
-    private void stateTransition(State target, long timetamp) {
-        stateTransition(target);
-        this.lastStateTransitionAt = timetamp;
+    private void statePreUnreliable(Event event, long timestamp) {
+        switch (event) {
+            case TIME:
+                if (lastStateTransitionAt + failDelay < timestamp) {
+                    doStateTransition(State.UNRELIABLE, timestamp);
+                }
+                break;
+            case SUCCESS:
+                doStateTransition(State.OPERATIONAL, timestamp);
+                break;
+            case ERROR:
+                doStateTransition(State.PRE_FAIL);
+                break;
+
+            default:
+        }
     }
 
-    private void stateTransition(State target) {
-        this.state = target;
+    private void stateUnreliable(Event event, long timestamp) {
+        switch (event) {
+            case TIME:
+                if (lastStateTransitionAt + failReset < timestamp) {
+                    doStateTransition(State.UNKNOWN, timestamp);
+                }
+                break;
+            case SUCCESS:
+                doStateTransition(State.OPERATIONAL, timestamp);
+                break;
+            case ERROR:
+                doStateTransition(State.PRE_FAIL, timestamp);
+                break;
+
+            default:
+        }
     }
 
-    private enum Event {
-        TIME,
-        STATE_OPERATIONAL,
-        STATE_FAIL
+    private void doStateTransition(State target, long timestamp) {
+        doStateTransition(target);
+        this.lastStateTransitionAt = timestamp;
     }
 
-    private enum State {
+    private void doStateTransition(State target) {
+        realState = target;
+        updateState();
+    }
+
+    private void updateState() {
+        switch (realState) {
+            case OPERATIONAL:
+                state = State.OPERATIONAL;
+                break;
+            case FAIL:
+                state = State.FAIL;
+                break;
+            case UNRELIABLE:
+                state = State.UNRELIABLE;
+                break;
+
+            case GARBAGE:
+            case UNKNOWN:
+                state = State.UNKNOWN;
+                break;
+
+            default:
+        }
+    }
+
+    private static Event errorToEventMap(Ping.Errors error) {
+        switch (error) {
+            case SOURCE_NOT_AVAILABLE:
+            case DEST_NOT_AVAILABLE:
+                return Event.OPERATIONAL_ERROR;
+            default:
+                return Event.ERROR;
+        }
+    }
+
+    public enum State {
         UNKNOWN,
         OPERATIONAL,
         PRE_FAIL,
         FAIL,
+        PRE_UNRELIABLE,
+        UNRELIABLE,
         GARBAGE
+    }
+
+    private enum Event {
+        TIME,
+        SUCCESS,
+        ERROR,
+        OPERATIONAL_ERROR
     }
 }

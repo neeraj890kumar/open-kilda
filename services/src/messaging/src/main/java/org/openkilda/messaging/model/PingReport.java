@@ -29,18 +29,19 @@ public class PingReport implements Serializable {
     private String flowId;
 
     @JsonProperty("status")
-    private Status status;
+    private State state;
 
     @JsonCreator
     public PingReport(
             @JsonProperty(Utils.FLOW_ID) String flowId,
-            @JsonProperty("status") Status status) {
+            @JsonProperty("status") State state) {
         this.flowId = flowId;
-        this.status = status;
+        this.state = state;
     }
 
-    public enum Status {
+    public enum State {
         OPERATIONAL,
-        FAILED
+        FAILED,
+        UNRELIABLE
     }
 }

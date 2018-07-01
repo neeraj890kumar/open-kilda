@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 public class FlowObserver {
     private final PingObserver.PingObserverBuilder pingStatusBuilder;
 
-    private PingReport.Status currentStatus = null;
+    private PingReport.State currentState = null;
     private final HashMap<Long, PingObserver> observations = new HashMap<>();
 
     public FlowObserver(PingObserver.PingObserverBuilder pingStatusBuilder) {
@@ -42,7 +42,7 @@ public class FlowObserver {
 
         long timestamp = pingContext.getTimestamp();
         if (pingContext.isError()) {
-            pingObserver.markFailed(timestamp);
+            pingObserver.markFailed(timestamp, pingContext.getError());
         } else {
             pingObserver.markOperational(timestamp);
         }
@@ -55,37 +55,65 @@ public class FlowObserver {
     /**
      * Notify stored ping observers about end of time tick.
      */
-    public PingReport.Status timeTick(long timestamp) {
-        PingReport.Status status = PingReport.Status.OPERATIONAL;
+    public PingReport.State timeTick(long timestamp) {
+        PingReport.State flowState = PingReport.State.OPERATIONAL;
         for (Iterator<PingObserver> iterator = observations.values().iterator(); iterator.hasNext(); ) {
             final PingObserver value = iterator.next();
 
-            if (value.isGarbage()) {
-                iterator.remove();
-                continue;
-            }
+            PingObserver.State pingState = value.timeTick(timestamp);
 
-            value.timeTick(timestamp);
-            if (value.isFail()) {
-                status = PingReport.Status.FAILED;
+            switch (pingState) {
+                case GARBAGE:
+                    iterator.remove();
+                    continue;
+                case FAIL:
+                    flowState = PingReport.State.FAILED;
+                    break;
+                case UNKNOWN:
+                case UNRELIABLE:
+                    if (flowState == PingReport.State.OPERATIONAL) {
+                        flowState = PingReport.State.UNRELIABLE;
+                    }
+                    break;
+
+                default:
+                    throw new IllegalArgumentException(String.format(
+                            "Unsupported %s value %s", PingObserver.State.class.getName(), pingState));
             }
         }
 
-        if (status == currentStatus) {
-            status = null;
+        if (flowState == currentState) {
+            flowState = null;
         } else {
-            currentStatus = status;
+            currentState = flowState;
         }
 
-        return status;
+        return flowState;
     }
 
     /**
      * Return list of cookies for failed flows.
      */
-    public List<Long> getFailedCookies() {
+    public List<Long> getFlowTreadsInState(PingReport.State reportState) {
+        PingObserver.State pingState;
+        switch (reportState) {
+            case FAILED:
+                pingState = PingObserver.State.FAIL;
+                break;
+            case OPERATIONAL:
+                pingState = PingObserver.State.OPERATIONAL;
+                break;
+            case UNRELIABLE:
+                pingState = PingObserver.State.UNRELIABLE;
+                break;
+
+            default:
+                throw new IllegalArgumentException(String.format(
+                        "Unsupported %s value %s", PingReport.State.class.getName(), reportState));
+        }
+
         return observations.entrySet().stream()
-                .filter(e -> e.getValue().isFail())
+                .filter(e -> e.getValue().getState() == pingState)
                 .map(Entry::getKey)
                 .collect(Collectors.toList());
     }

@@ -16,7 +16,7 @@
 package org.openkilda.messaging.model;
 
 import org.openkilda.messaging.ObjectSerializer;
-import org.openkilda.messaging.model.PingReport.Status;
+import org.openkilda.messaging.model.PingReport.State;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -24,7 +24,7 @@ import org.junit.Test;
 public class PingReportTest implements ObjectSerializer {
     @Test
     public void serializeLoop() throws Exception {
-        PingReport origin = new PingReport("flowId-" + getClass().getSimpleName(), Status.OPERATIONAL);
+        PingReport origin = new PingReport("flowId-" + getClass().getSimpleName(), State.OPERATIONAL);
 
         serialize(origin);
         PingReport decoded = (PingReport) deserialize();

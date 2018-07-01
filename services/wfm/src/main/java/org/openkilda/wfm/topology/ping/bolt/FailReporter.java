@@ -16,6 +16,7 @@
 package org.openkilda.wfm.topology.ping.bolt;
 
 import org.openkilda.messaging.model.PingReport;
+import org.openkilda.messaging.model.PingReport.State;
 import org.openkilda.wfm.error.AbstractException;
 import org.openkilda.wfm.error.PipelineException;
 import org.openkilda.wfm.topology.ping.model.FlowObserver;
@@ -92,9 +93,9 @@ public class FailReporter extends Abstract {
                 continue;
             }
 
-            PingReport.Status status = flowObserver.timeTick(now);
-            if (status != null) {
-                report(input, entry.getKey(), flowObserver, status);
+            State state = flowObserver.timeTick(now);
+            if (state != null) {
+                report(input, entry.getKey(), flowObserver, state);
             }
         }
     }
@@ -119,11 +120,11 @@ public class FailReporter extends Abstract {
         flowObserver.update(pingContext);
     }
 
-    private void report(Tuple input, String flowId, FlowObserver flowObserver, PingReport.Status status)
+    private void report(Tuple input, String flowId, FlowObserver flowObserver, State state)
             throws PipelineException {
-        String logMessage = String.format("{FLOW-PING} Flow %s become %s", flowId, status);
-        if (status == PingReport.Status.FAILED) {
-            String cookies = flowObserver.getFailedCookies().stream()
+        String logMessage = String.format("{FLOW-PING} Flow %s become %s", flowId, state);
+        if (state != State.OPERATIONAL) {
+            String cookies = flowObserver.getFlowTreadsInState(state).stream()
                     .map(cookie -> String.format("0x%016x", cookie))
                     .collect(Collectors.joining(", "));
             logMessage += String.format("(%s)", cookies);
@@ -131,7 +132,7 @@ public class FailReporter extends Abstract {
 
         log.info(logMessage);
 
-        Values output = new Values(new PingReport(flowId, status), pullContext(input));
+        Values output = new Values(new PingReport(flowId, state), pullContext(input));
         getOutput().emit(input, output);
     }
 

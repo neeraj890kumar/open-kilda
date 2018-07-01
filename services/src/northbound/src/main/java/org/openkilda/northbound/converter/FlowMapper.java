@@ -28,7 +28,7 @@ public interface FlowMapper {
     /**
      * Translate Java's error code(enum) into human readable string.
      */
-    default String getVerificationError(Ping.Errors error) {
+    default String getPingError(Ping.Errors error) {
         if (error == null) {
             return null;
         }
@@ -42,7 +42,11 @@ public interface FlowMapper {
                 message = "Can't send ping";
                 break;
             case NOT_CAPABLE:
-                message = "Unable to perform flow verification due to unsupported switch (at least one)";
+                message = "Can't ping - at least one of enpoints are not capable to catch pings.";
+                break;
+            case SOURCE_NOT_AVAILABLE:
+            case DEST_NOT_AVAILABLE:
+                message = "Can't ping - at least one of endpoints are unavailable";
                 break;
             default:
                 message = error.toString();

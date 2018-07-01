@@ -19,7 +19,7 @@ import org.openkilda.messaging.StringSerializer;
 import org.openkilda.messaging.info.InfoData;
 import org.openkilda.messaging.info.InfoMessage;
 import org.openkilda.messaging.model.PingReport;
-import org.openkilda.messaging.model.PingReport.Status;
+import org.openkilda.messaging.model.PingReport.State;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -27,7 +27,7 @@ import org.junit.Test;
 public class FlowPingReportTest implements StringSerializer {
     @Test
     public void serializeLoop() throws Exception {
-        PingReport report = new PingReport("flowId-" + getClass().getSimpleName(), Status.OPERATIONAL);
+        PingReport report = new PingReport("flowId-" + getClass().getSimpleName(), State.OPERATIONAL);
         FlowPingReport origin = new FlowPingReport(report);
         InfoMessage wrapper = new InfoMessage(origin, System.currentTimeMillis(), getClass().getSimpleName());
 
