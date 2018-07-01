@@ -18,8 +18,8 @@ for idx in ${attempts}; do
         complete=0
         break
     fi
-    echo "[$idx of $wait_cycles] ${topology} still alive..."
     sleep 1
+    echo "[$idx of $wait_cycles] ${topology} still alive..."
 done
 
 exit ${complete}
