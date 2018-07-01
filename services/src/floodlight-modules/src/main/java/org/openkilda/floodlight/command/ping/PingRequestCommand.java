@@ -16,7 +16,7 @@
 package org.openkilda.floodlight.command.ping;
 
 import org.openkilda.floodlight.command.CommandContext;
-import org.openkilda.floodlight.error.InsufficientCapabilitiesException;
+import org.openkilda.floodlight.error.PingImpossibleException;
 import org.openkilda.floodlight.model.OfRequestResponse;
 import org.openkilda.floodlight.model.PingData;
 import org.openkilda.floodlight.service.PingService;
@@ -69,31 +69,33 @@ public class PingRequestCommand extends Abstract {
         try {
             validate();
             send();
-        } catch (InsufficientCapabilitiesException e) {
-            sendErrorResponse(ping.getPingId(), Errors.NOT_CAPABLE);
+        } catch (PingImpossibleException e) {
+            log.error("Can't send ping {} - {}", ping, e.getMessage());
+            sendErrorResponse(ping.getPingId(), e.getError());
         }
     }
 
-    private void validate() throws InsufficientCapabilitiesException {
+    private void validate() throws PingImpossibleException {
         final String destId = ping.getDest().getSwitchDpId();
         IOFSwitch destSw = lookupSwitch(destId);
         if (destSw == null) {
             log.debug("Do not own ping\'s destination switch {}", destId);
-            return;
+            // TODO(surabujin): must be changed when multi FL design will be accepted
+            throw new PingImpossibleException(Errors.DEST_NOT_AVAILABLE);
         }
 
         if (0 < OFVersion.OF_13.compareTo(destSw.getOFFactory().getVersion())) {
-            throw new InsufficientCapabilitiesException(String.format(
-                    "Switch %s is not able to catch PING package", destId));
+            throw new PingImpossibleException(Errors.NOT_CAPABLE);
         }
     }
 
-    private void send() {
+    private void send() throws PingImpossibleException {
         String swId = ping.getSource().getSwitchDpId();
         IOFSwitch sw = lookupSwitch(swId);
         if (sw == null) {
             log.debug("Do not own ping's source switch {}", swId);
-            return;
+            // TODO(surabujin): must be changed when multi FL design will be accepted
+            throw new PingImpossibleException(Errors.SOURCE_NOT_AVAILABLE);
         }
 
         PingData data = PingData.of(ping);

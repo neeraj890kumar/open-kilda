@@ -15,12 +15,17 @@
 
 package org.openkilda.floodlight.error;
 
-public class InsufficientCapabilitiesException extends AbstractException {
-    public InsufficientCapabilitiesException() {
-        this("Insufficient capabilities error");
+import org.openkilda.messaging.model.Ping;
+
+public class PingImpossibleException extends AbstractException {
+    private final Ping.Errors error;
+
+    public PingImpossibleException(Ping.Errors error) {
+        super(String.format("Can't ping - %s", error));
+        this.error = error;
     }
 
-    public InsufficientCapabilitiesException(String s) {
-        super(s);
+    public Ping.Errors getError() {
+        return error;
     }
 }
