@@ -66,6 +66,8 @@ public class FlowObserver {
                 case GARBAGE:
                     iterator.remove();
                     continue;
+                case OPERATIONAL:
+                    break;
                 case FAIL:
                     flowState = PingReport.State.FAILED;
                     break;
